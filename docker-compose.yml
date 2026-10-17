@@ -1,0 +1,136 @@
+# ==============================================================================
+# Docker Compose Stack for Smart Industrial Asset Monitoring & Failure Prediction
+# ==============================================================================
+# Services:
+#   1. mosquitto   - Eclipse Mosquitto MQTT message broker (port 1883)
+#   2. timescaledb - TimescaleDB on PostgreSQL 16 (pinned tag, port 5432)
+#   3. backend     - FastAPI REST API, WebSocket server & Live GRU service (port 8000)
+#
+# NOTE: Mosquitto runs with allow_anonymous=true for local simulation and testing.
+# For production deployment, TLS/mTLS and authenticated access controls are required.
+# ==============================================================================
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: iot_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - iot_network
+
+  timescaledb:
+    image: timescale/timescaledb:2.14.2-pg16
+    container_name: iot_timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: industrial_iot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./backend/app/database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d industrial_iot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: iot_cp-backend
+    container_name: iot_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:password@timescaledb:5432/industrial_iot
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      GRU_CHECKPOINT_PATH: ml/checkpoints/gru_model.pt
+      SCALER_PATH: data/processed/scaler.pkl
+      GRU_THRESHOLD: 0.55
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: 8000
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/workspace/backend
+      - ./simulator:/workspace/simulator
+      - ./edge:/workspace/edge
+      - ./ml:/workspace/ml
+      - ./data:/workspace/data
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    networks:
+      - iot_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: iot_cp-frontend
+    container_name: iot_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - iot_network
+
+  edge:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: iot_cp-backend
+    container_name: iot_edge
+    restart: unless-stopped
+    command: python edge/main.py --broker-host mosquitto --broker-port 1883
+    volumes:
+      - ./edge:/workspace/edge
+      - ./simulator:/workspace/simulator
+      - ./ml:/workspace/ml
+    depends_on:
+      mosquitto:
+        condition: service_started
+    networks:
+      - iot_network
+
+  simulator:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: iot_cp-backend
+    container_name: iot_simulator
+    restart: unless-stopped
+    command: python simulator/main.py --all --broker-host mosquitto --broker-port 1883 --interval-ms 500 --loop
+    volumes:
+      - ./simulator:/workspace/simulator
+      - ./data:/workspace/data
+    depends_on:
+      mosquitto:
+        condition: service_started
+    networks:
+      - iot_network
+
+networks:
+  iot_network:
+    driver: bridge
+
+volumes:
+  timescaledb_data:
+    driver: local

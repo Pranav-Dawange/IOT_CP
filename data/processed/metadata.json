@@ -1,0 +1,29 @@
+{
+  "raw_samples": 10000,
+  "features": [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]"
+  ],
+  "target": "Machine failure",
+  "excluded_columns": [
+    "UDI",
+    "Product ID",
+    "Type",
+    "TWF",
+    "HDF",
+    "PWF",
+    "OSF",
+    "RNF"
+  ],
+  "scaler_type": "standard",
+  "train_samples": 7000,
+  "train_failures": 278,
+  "val_samples": 1500,
+  "val_failures": 32,
+  "test_samples": 1500,
+  "test_failures": 29,
+  "scaler_path": "C:\\Users\\Pranav\\OneDrive\\Desktop\\Documents\\IOT_CP\\data\\processed\\scaler.pkl"
+}

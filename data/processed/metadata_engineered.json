@@ -1,0 +1,36 @@
+{
+  "experiment": "Experiment B (Raw 5 + Engineered 5)",
+  "raw_features": [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]"
+  ],
+  "engineered_features": [
+    "temperature_difference",
+    "angular_velocity",
+    "mechanical_power_proxy",
+    "tool_wear_torque_interaction",
+    "temperature_torque_interaction"
+  ],
+  "all_features": [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]",
+    "temperature_difference",
+    "angular_velocity",
+    "mechanical_power_proxy",
+    "tool_wear_torque_interaction",
+    "temperature_torque_interaction"
+  ],
+  "num_features": 10,
+  "target": "Machine failure",
+  "scaler_type": "standard",
+  "train_samples": 7000,
+  "val_samples": 1500,
+  "test_samples": 1500,
+  "scaler_path": "C:\\Users\\Pranav\\OneDrive\\Desktop\\Documents\\IOT_CP\\data\\processed\\scaler_engineered.pkl"
+}
