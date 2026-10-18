@@ -125,6 +125,7 @@ An interactive, realistic hardware digital twin and physical prototype simulator
   - **Transducers**: Allegro ACS712 (±5A Hall current), LM393 slotted optical tachometer with spinning 8-notch disc, Maxim DS18B20 stainless waterproof stator probe (with physical 4.7kΩ axial pullup resistor), and InvenSense GY-521 MPU-6050 6-DOF IMU.
   - **Actuators & Load**: 1-channel 5V Songle safety relay with EL817 optocoupler, and a 24V DC RS-775 industrial spindle motor with dynamic thermal glow and spinning impeller fan.
   - **Curved DuPont Jumper Wires**: Flexible color-coded wiring with terminal sleeves, traveling signal packets, and bus filters (Power, I2C, ADC, Interrupts, 1-Wire, 24V Motor Circuit).
+- 🔌 **Interactive Breadboard Wiring Lab (Drag & Drop + ERC Engine)**: Hands-on virtual breadboard wiring with 28 interactive tie-points, cubic bezier DuPont jumper wire routing, customizable wire colors, and a real-time **Electrical Rule Check (ERC)** engine that diagnoses short circuits, overvoltage hazards, inverted I2C buses, and floating 1-Wire pullup lines.
 - 📐 **Circuit Schematic (IEEE Std 315-1975)**: Vector engineering schematic showing net connections, decoupling capacitors, optoisolator barrier, flyback diode, and the **2.1 kVRMS galvanic safety boundary** separating 3.3V/5V logic from the 24V motor circuit.
 - 📋 **Academic Pinout & Interconnect Matrix**: Engineering reference table detailing Component, Module Pin, ESP32 GPIO, Protocol, Logic Voltage Domain, Sampling Frequency, Transfer Function, and real-time live readings.
 - 💻 **ESP32 FreeRTOS C++ Firmware Viewer**: Production-ready C++ firmware displaying dual-core task affinity (Core 0: ADC polling & EMA noise filter; Core 1: MQTT serialization), `IRAM_ATTR` interrupt handler, and one-click code copy.
@@ -146,7 +147,27 @@ Comprehensive frequency-domain vibration analysis instrument for mechanical bear
   - Web Audio sonic demodulation generating acoustic impact clicks matching the defect frequency.
 - **Statistical Condition Metrics**: Live calculation of Crest Factor ($CF = \text{Peak}/\text{RMS}$), Kurtosis ($\beta_2$), and ISO 10816 Zone classification (A/B/C/D).
 
-### 3. Fluke 87V Digital Multimeter (DMM) Tool
+### 3. Firmware Flasher Integration & Live Telemetry Stream (WebSerial API)
+Direct browser-to-ESP32 hardware interface using Chrome's native **WebSerial API** (`navigator.serial`):
+- **Physical USB Serial Connectivity**: Direct serial link to physical ESP32 DevKit boards supporting CP2102, CH340, FT232R, and Espressif USB-JTAG bridges at selectable baud rates (115200, 230400, 921600 baud).
+- **Interactive Bidirectional Terminal**: Serial command line with automatic timestamping, ANSI color formatting, macro shortcuts (`PING`, `GET_SYS_INFO`, `TRIP_RELAY`, `REBOOT`, `DUMP_HEAP`), and auto-scroll control.
+- **Live Hardware Telemetry Ingestion**: Automatically detects `[HW_TELEM]` stream frames from connected physical sensors (RPM, Current, Temperature, Vibration RMS) and feeds them directly into the frontend dashboard, driving the digital twin and PyTorch GRU failure-risk model from real hardware.
+- **ESP32 Bootloader & Flash Partition Map**: 4MB QSPI flash memory map inspector displaying `bootloader.bin` (0x1000), `partitions.bin` (0x8000), `firmware_ai4i.bin` (0x10000), and `spiffs_certs.bin` (0x310000) with simulated binary flashing progress.
+- **Virtual Loopback Demo Mode**: Allows testing full flasher and telemetry stream capabilities even without a physical microcontroller plugged in.
+
+### 4. Custom Circuit Breadboard Wire Drag-and-Drop & Electrical Rule Check (ERC)
+Interactive engineering CAD workbench allowing students and engineers to test breadboard wiring configurations:
+- **Interactive Wire Routing**: Drag-and-drop wire drawing between 28 individual breadboard tie-points across the ESP32, MB102 power module, ACS712 current sensor, LM393 tachometer, DS18B20 temperature probe, MPU-6050 IMU, Songle relay, and RS-775 motor.
+- **Color Palette & Wire Management**: 8-color DuPont jumper palette (Blue, Orange, Red, Cyan, Yellow, Green, Purple, Pink, Dark) with click-to-select, wire length calculation, and one-click deletion.
+- **Real-Time Electrical Rule Check (ERC) Diagnostics**:
+  - **Short Circuit Detection**: Alerts if +5V or +3.3V is connected directly to GND, simulating MB102 thermal shutdown.
+  - **Overvoltage Destruction**: Alerts if the +24V motor bus is shorted to a 3.3V ESP32 GPIO, warning of silicon gate oxide breakdown.
+  - **I2C Bus Inversion**: Detects swapped SDA and SCL lines resulting in $I^2C$ `NACK` errors on address `0x68`.
+  - **Missing 1-Wire Pullup Resistor**: Flags missing 4.7kΩ pullup on DS18B20 data line ($DQ$), explaining bus float in viva defense terms.
+  - **Floating Inputs**: Notifies when sensor outputs are left unconnected.
+- **Viva Defense Presets**: One-click scenario buttons to demonstrate Nominal Wiring, Short Circuit, Inverted $I^2C$, and 24V HV Injection during examinations.
+
+### 5. Fluke 87V Digital Multimeter (DMM) Tool
 Click **Multimeter Tool** to probe 8 physical test points:
 - `TP1: 5V_BUS` (+5.02 V DC)
 - `TP2: 3V3_MCU` (+3.31 V DC)
@@ -157,14 +178,14 @@ Click **Multimeter Tool** to probe 8 physical test points:
 - `TP7: RELAY_IN` (3.3V Normal / 0.0V Cutoff)
 - `TP8: MOTOR_24V` (+24.08 V DC Load Circuit)
 
-### 4. Academic Scenario Presets
+### 6. Academic Scenario Presets
 - 🟢 **Nominal CNC**: Baseline operation (1500 RPM, 38 Nm, 34°C, 1.2g, 15% GRU risk).
 - 🟠 **Bearing Degradation**: Tool wear & vibration surge to 3.8g (ISO 10816 Zone C).
 - 🛑 **Jammed Rotor Stall & Auto-Cutoff**: Current surges to 4.7A, triggering automatic Songle relay trip within **8.4ms**.
 - 🔥 **Thermal Crisis**: Fan failure with stator temperature reaching 45°C.
 - 📡 **Wi-Fi Dropout**: Demonstrates edge autonomy with local circular ring buffering.
 
-### 5. Printable Lab Report Generator
+### 7. Printable Lab Report Generator
 Click **Lab Report** to generate an academic engineering document including:
 - Document Abstract & System Architecture
 - Complete **Bill of Materials (BOM)** with component part numbers and total prototype pricing ($28.40)

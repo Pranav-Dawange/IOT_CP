@@ -35,12 +35,14 @@ import {
   Download, Eye, FileDown, FileText, Flame, Gauge, HelpCircle,
   Info, Layers, Leaf, MonitorSpeaker, MousePointer, Play, Power,
   Printer, Radio, RefreshCw, RotateCw, ShieldAlert, Sliders,
-  Sparkles, Terminal, Thermometer, Volume2, VolumeX, Waves, Wifi, WifiOff,
+  Sparkles, Terminal, Thermometer, Usb, Volume2, VolumeX, Waves, Wifi, WifiOff,
   Wrench, X, Zap, ZoomIn
 } from 'lucide-react';
 import { Asset } from '../types';
 import { MachinePrototype3D } from './MachinePrototype3D';
 import { VibrationSpectrumAnalyzer } from './VibrationSpectrumAnalyzer';
+import { WebSerialFlasher } from './WebSerialFlasher';
+import { InteractiveBreadboardWiring } from './InteractiveBreadboardWiring';
 
 // ─── INTERFACES ─────────────────────────────────────────────────────────────
 interface MachineSimulatorProps {
@@ -544,11 +546,19 @@ function OscilloscopeWave({ waveform, color, amplitude = 1, frequency = 1 }:
 export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ assets, onInjectFault }) => {
   // Navigation & View States
   const [selectedAssetId, setSelectedAssetId] = useState('asset_01');
-  const [workbenchView, setWorkbenchView] = useState<'3d' | 'breadboard' | 'schematic' | 'pinout' | 'firmware'>('3d');
-  const [activeTab, setActiveTab] = useState<'bench' | 'fft' | 'scope' | 'serial' | 'mqtt' | 'sustainability'>('bench');
+  const [workbenchView, setWorkbenchView] = useState<'3d' | 'breadboard' | 'wiring' | 'schematic' | 'pinout' | 'firmware'>('3d');
+  const [activeTab, setActiveTab] = useState<'bench' | 'fft' | 'scope' | 'flasher' | 'serial' | 'mqtt' | 'sustainability'>('bench');
   const [isManualMode, setIsManualMode] = useState(false);
   const [benchPowerOn, setBenchPowerOn] = useState(true);
   const [relayTripped, setRelayTripped] = useState(false);
+  const [hardwareTelemActive, setHardwareTelemActive] = useState(false);
+  const [hardwareTelemData, setHardwareTelemData] = useState<{
+    rpm: number;
+    currentA: number;
+    tempC: number;
+    vibrationG: number;
+    relayState: boolean;
+  } | null>(null);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>('esp32');
   const [wireBusFilter, setWireBusFilter] = useState<'all' | 'power' | 'i2c' | 'adc' | 'interrupt' | 'onewire' | 'motor'>('all');
 
@@ -614,6 +624,24 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         vibrationG: 0.05,
         risk: 0,
         status: !benchPowerOn ? 'POWER_OFF' : 'RELAY_TRIPPED',
+      };
+    }
+    if (hardwareTelemActive && hardwareTelemData) {
+      const { rpm, currentA, tempC, vibrationG, relayState } = hardwareTelemData;
+      const torque = parseFloat(((currentA / 1.5) * 16).toFixed(1));
+      const powerW = parseFloat((currentA * 24.0).toFixed(1));
+      const risk = vibrationG > 2.8 || tempC > 40 || currentA > 3.5 ? 0.82 : 0.14;
+      return {
+        rpm,
+        torque,
+        tempC,
+        tempK: parseFloat((tempC + 273.15).toFixed(1)),
+        currentA,
+        voltage: relayState ? 24.0 : 0.0,
+        powerW: relayState ? powerW : 0,
+        vibrationG,
+        risk,
+        status: 'HARDWARE_LINKED',
       };
     }
     if (isManualMode || !liveAsset?.latest_telemetry) {
@@ -1118,6 +1146,21 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
             <span>{dmmActive ? 'Hide DMM Probe' : 'Multimeter Tool'}</span>
           </button>
 
+          {/* WebSerial Connect USB Button */}
+          <button
+            id="btn-connect-usb"
+            onClick={() => setActiveTab('flasher')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all ${
+              activeTab === 'flasher'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                : 'bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-slate-200'
+            }`}
+            title="Connect physical ESP32 over USB via WebSerial API"
+          >
+            <Usb className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">Connect USB</span>
+          </button>
+
           {/* Academic Lab Report Modal Button */}
           <button
             id="btn-open-report"
@@ -1209,6 +1252,16 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
             <span>2D Breadboard</span>
           </button>
           <button
+            id="btn-view-wiring"
+            onClick={() => setWorkbenchView('wiring')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+              workbenchView === 'wiring' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MousePointer className="w-3.5 h-3.5 text-amber-400" />
+            <span>Wiring Lab (Drag & Drop)</span>
+          </button>
+          <button
             id="btn-view-schematic"
             onClick={() => setWorkbenchView('schematic')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
@@ -1279,6 +1332,8 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                     ? '3D INTERACTIVE DIGITAL TWIN (WEBGL)'
                     : workbenchView === 'breadboard'
                     ? 'PHYSICAL BREADBOARD LAB RIG'
+                    : workbenchView === 'wiring'
+                    ? 'INTERACTIVE BREADBOARD WIRING & ELECTRICAL RULE CHECK (ERC)'
                     : workbenchView === 'schematic'
                     ? 'IEEE CIRCUIT SCHEMATIC & GALVANIC ISOLATION'
                     : workbenchView === 'pinout'
@@ -1807,6 +1862,19 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
               </div>
             )}
 
+            {/* ── VIEW: INTERACTIVE BREADBOARD WIRING & ERC (DRAG & DROP) ── */}
+            {workbenchView === 'wiring' && (
+              <div className="my-3">
+                <InteractiveBreadboardWiring
+                  onWiringStatusChange={(diag) => {
+                    if (diag.shortCircuit || diag.overvoltage) {
+                      setRelayTripped(true);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
             {/* ── VIEW 2: CIRCUIT SCHEMATIC (IEEE / IEC VECTOR DIAGRAM) ── */}
             {workbenchView === 'schematic' && (
               <div className="relative my-3 rounded-xl border border-slate-800 overflow-hidden bg-[#050811] p-3 text-xs font-mono">
@@ -2216,19 +2284,20 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         {/* ─── RIGHT COLUMN: DIAGNOSTIC TABS & METRICS (5 COLS) ─── */}
         <div className="lg:col-span-5 space-y-3">
           {/* Tab Selection Header */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono">
+          <div className="flex items-center gap-1 p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono overflow-x-auto">
             {[
               { id: 'bench', label: 'Sensors', icon: <Activity className="w-3.5 h-3.5" /> },
-              { id: 'fft', label: 'FFT Spectrum', icon: <Waves className="w-3.5 h-3.5" /> },
-              { id: 'scope', label: 'Oscilloscope', icon: <MonitorSpeaker className="w-3.5 h-3.5" /> },
-              { id: 'serial', label: 'Serial UART', icon: <Terminal className="w-3.5 h-3.5" /> },
-              { id: 'mqtt', label: 'MQTT Trace', icon: <Radio className="w-3.5 h-3.5" /> },
-              { id: 'sustainability', label: 'Carbon ROI', icon: <Leaf className="w-3.5 h-3.5" /> },
+              { id: 'flasher', label: 'WebSerial USB', icon: <Usb className="w-3.5 h-3.5 text-emerald-400" /> },
+              { id: 'fft', label: 'FFT Spectrum', icon: <Waves className="w-3.5 h-3.5 text-cyan-400" /> },
+              { id: 'scope', label: 'Scope', icon: <MonitorSpeaker className="w-3.5 h-3.5" /> },
+              { id: 'serial', label: 'Serial', icon: <Terminal className="w-3.5 h-3.5" /> },
+              { id: 'mqtt', label: 'MQTT', icon: <Radio className="w-3.5 h-3.5" /> },
+              { id: 'sustainability', label: 'Carbon ROI', icon: <Leaf className="w-3.5 h-3.5 text-emerald-400" /> },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold transition-all ${
+                className={`flex-1 min-w-[65px] flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg font-bold transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
@@ -2396,6 +2465,17 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ── TAB: WEBSERIAL ESP32 HARDWARE FLASHER & LIVE TELEMETRY ── */}
+          {activeTab === 'flasher' && (
+            <WebSerialFlasher
+              isBenchPowered={benchPowerOn && !relayTripped}
+              onLiveHardwareTelemetry={(data) => {
+                setHardwareTelemActive(true);
+                setHardwareTelemData(data);
+              }}
+            />
           )}
 
           {/* ── TAB: MPU-6050 FFT SPECTRUM ANALYZER (BEARING FAULT FREQUENCIES) ── */}
