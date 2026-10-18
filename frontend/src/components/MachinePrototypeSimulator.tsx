@@ -1103,18 +1103,18 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
       )}
 
       {/* ─── TOP CONTROL BAR ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 text-cyan-400 shadow-inner">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">IoT Hardware Prototype Workbench</h2>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">v5.0 ACADEMIC</span>
+              <h2 className="text-sm font-bold text-white tracking-wide">Hardware Prototype & Digital Twin Lab</h2>
+              <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">Rig v5.0</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              Fritzing Rig · IEEE Schematic · Pinout Matrix · FreeRTOS Firmware · DMM Multimeter
+            <p className="text-[11px] text-slate-400">
+              Interactive 3D Rig · Breadboard Wiring · FFT Vibration Spectrum · WebSerial Flasher
             </p>
           </div>
         </div>
@@ -1228,63 +1228,63 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
       </div>
 
       {/* ─── WORKBENCH VIEW SWITCHER TABS & WIRE FILTER ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs font-mono">
-        {/* 5 Main Views */}
-        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl glass-panel text-xs">
+        {/* 6 Main Views */}
+        <div className="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/5">
           <button
             id="btn-view-3d"
             onClick={() => setWorkbenchView('3d')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === '3d' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Boxes className="w-3.5 h-3.5" />
-            <span>3D Digital Twin</span>
+            <span>3D Model</span>
           </button>
           <button
             id="btn-view-breadboard"
             onClick={() => setWorkbenchView('breadboard')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === 'breadboard' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>2D Breadboard</span>
+            <span>Breadboard</span>
           </button>
           <button
             id="btn-view-wiring"
             onClick={() => setWorkbenchView('wiring')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === 'wiring' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <MousePointer className="w-3.5 h-3.5 text-amber-400" />
-            <span>Wiring Lab (Drag & Drop)</span>
+            <span>Wiring Lab</span>
           </button>
           <button
             id="btn-view-schematic"
             onClick={() => setWorkbenchView('schematic')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === 'schematic' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Binary className="w-3.5 h-3.5" />
-            <span>Circuit Schematic (IEEE)</span>
+            <span>Circuit Diagram</span>
           </button>
           <button
             id="btn-view-pinout"
             onClick={() => setWorkbenchView('pinout')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === 'pinout' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Pinout & Wiring Matrix</span>
+            <span>Pin Reference</span>
           </button>
           <button
             id="btn-view-firmware"
             onClick={() => setWorkbenchView('firmware')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
               workbenchView === 'firmware' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -2284,23 +2284,23 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         {/* ─── RIGHT COLUMN: DIAGNOSTIC TABS & METRICS (5 COLS) ─── */}
         <div className="lg:col-span-5 space-y-3">
           {/* Tab Selection Header */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono overflow-x-auto">
+          <div className="flex items-center gap-1 p-1.5 glass-panel rounded-xl text-xs overflow-x-auto">
             {[
               { id: 'bench', label: 'Sensors', icon: <Activity className="w-3.5 h-3.5" /> },
-              { id: 'flasher', label: 'WebSerial USB', icon: <Usb className="w-3.5 h-3.5 text-emerald-400" /> },
-              { id: 'fft', label: 'FFT Spectrum', icon: <Waves className="w-3.5 h-3.5 text-cyan-400" /> },
-              { id: 'scope', label: 'Scope', icon: <MonitorSpeaker className="w-3.5 h-3.5" /> },
-              { id: 'serial', label: 'Serial', icon: <Terminal className="w-3.5 h-3.5" /> },
-              { id: 'mqtt', label: 'MQTT', icon: <Radio className="w-3.5 h-3.5" /> },
-              { id: 'sustainability', label: 'Carbon ROI', icon: <Leaf className="w-3.5 h-3.5 text-emerald-400" /> },
+              { id: 'flasher', label: 'USB Connect', icon: <Usb className="w-3.5 h-3.5 text-emerald-400" /> },
+              { id: 'fft', label: 'Vibration FFT', icon: <Waves className="w-3.5 h-3.5 text-cyan-400" /> },
+              { id: 'scope', label: 'Oscilloscope', icon: <MonitorSpeaker className="w-3.5 h-3.5" /> },
+              { id: 'serial', label: 'Terminal', icon: <Terminal className="w-3.5 h-3.5" /> },
+              { id: 'mqtt', label: 'Data Broker', icon: <Radio className="w-3.5 h-3.5" /> },
+              { id: 'sustainability', label: 'Energy & ESG', icon: <Leaf className="w-3.5 h-3.5 text-emerald-400" /> },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 min-w-[65px] flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg font-bold transition-all whitespace-nowrap ${
+                className={`flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-medium transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                 }`}
               >
                 {tab.icon}
@@ -2311,12 +2311,12 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
 
           {/* ── TAB 1: SENSOR TRANSDUCER STATUS ── */}
           {activeTab === 'bench' && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 font-mono">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-800 text-xs">
-                <span className="font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-cyan-400" /> Transducer Telemetry Matrix
+            <div className="glass-panel p-4 shadow-xl space-y-3">
+              <div className="flex justify-between items-center pb-2 border-b border-white/10 text-xs">
+                <span className="font-semibold text-white tracking-wide flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-cyan-400" /> Live Sensor Readings
                 </span>
-                <span className="text-[10px] text-slate-500">Node: ESP32-WROOM-32</span>
+                <span className="text-[10px] text-slate-400">Node: ESP32 Edge Core</span>
               </div>
 
               <div className="space-y-2 text-xs">
@@ -2381,15 +2381,15 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                   <div
                     key={item.compId}
                     onClick={() => setSelectedComponentId(item.compId)}
-                    className={`p-2.5 rounded-xl bg-slate-950 border flex items-center justify-between cursor-pointer hover:border-cyan-500 transition-colors ${
-                      item.warn ? 'border-amber-700/60' : 'border-slate-800'
+                    className={`p-2.5 rounded-xl glass-cell flex items-center justify-between cursor-pointer hover:border-cyan-400/40 hover:bg-white/[0.06] transition-all ${
+                      item.warn ? 'border-amber-500/50 bg-amber-500/5' : ''
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <div className={`p-2 rounded-lg border ${item.bg}`}>{item.icon}</div>
                       <div>
                         <div className="font-bold text-white text-[11px]">{item.label}</div>
-                        <div className="text-[9px] text-slate-500">{item.sub}</div>
+                        <div className="text-[9px] text-slate-400">{item.sub}</div>
                         {item.warn && <div className="text-[9px] text-amber-400 font-bold mt-0.5">⚠ Threshold Exceeded</div>}
                       </div>
                     </div>
@@ -2397,7 +2397,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                       <Sparkline data={item.spark} color={item.sc} height={26} />
                       <div className="text-right">
                         <div className={`text-base font-bold ${item.vc}`}>
-                          {item.val} <span className="text-[10px] text-slate-500">{item.unit}</span>
+                          {item.val} <span className="text-[10px] text-slate-400">{item.unit}</span>
                         </div>
                         <div className="text-[9px] text-slate-400">{item.sub2}</div>
                       </div>
@@ -2409,7 +2409,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
               {/* Quick Launch: FFT Vibration Spectrum Analyzer */}
               <div
                 onClick={() => setActiveTab('fft')}
-                className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-slate-950 border border-cyan-800/60 flex items-center justify-between cursor-pointer hover:border-cyan-400 hover:shadow-lg transition-all group"
+                className="p-2.5 rounded-xl glass-interactive border border-cyan-500/30 flex items-center justify-between cursor-pointer hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all group"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 group-hover:scale-105 transition-transform">

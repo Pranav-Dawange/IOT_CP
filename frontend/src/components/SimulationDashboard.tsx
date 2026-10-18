@@ -259,17 +259,25 @@ const DeviceCard: React.FC<{
 interface SimulationDashboardProps {
   assets: Asset[];
   onNotification: (msg: string, type?: 'success' | 'warning' | 'info') => void;
+  defaultViewMode?: 'prototype' | 'fleet' | 'all';
 }
 
 export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
   assets,
   onNotification,
+  defaultViewMode = 'prototype',
 }) => {
   const [activeScenario, setActiveScenario] = useState<string>('normal');
   const [isRunningScenario, setIsRunningScenario] = useState(false);
   const [injectingDevice, setInjectingDevice] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string>('all');
-  const [simViewMode, setSimViewMode] = useState<'prototype' | 'fleet' | 'all'>('prototype');
+  const [simViewMode, setSimViewMode] = useState<'prototype' | 'fleet' | 'all'>(defaultViewMode);
+
+  useEffect(() => {
+    if (defaultViewMode) {
+      setSimViewMode(defaultViewMode);
+    }
+  }, [defaultViewMode]);
 
   // Live counters
   const [totalEvents, setTotalEvents] = useState(0);

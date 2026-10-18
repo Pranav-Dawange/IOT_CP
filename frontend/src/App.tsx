@@ -48,7 +48,8 @@ export const App: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState<boolean>(false);
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'monitor' | 'simulation'>('simulation');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'twin' | 'simulator'>('twin');
+  const [personaMode, setPersonaMode] = useState<'operator' | 'engineer'>('operator');
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'warning' | 'info' }>>([]);
 
   const showToast = (message: string, type: 'success' | 'warning' | 'info' = 'info') => {
@@ -366,7 +367,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Top Application Header */}
+      {/* Top Application Header & Unified Navigation */}
       <Header
         wsState={wsState}
         health={health}
@@ -375,36 +376,41 @@ export const App: React.FC = () => {
         onRefreshHealth={refreshHealth}
         onOpenDisclaimer={() => setIsDisclaimerOpen(true)}
         onOpenWhatIf={() => setIsWhatIfOpen(true)}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        personaMode={personaMode}
+        onTogglePersona={() => setPersonaMode((p) => (p === 'operator' ? 'engineer' : 'operator'))}
+        alertCount={alerts.length}
+        onOpenAlerts={() => {
+          setActiveTab('fleet');
+          showToast(`Displaying ${alerts.length} active fleet alerts in Fleet Overview.`, 'info');
+        }}
       />
 
-      {/* Tab Navigation */}
-      <div className="border-b border-slate-800 bg-slate-950/80">
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1">
-          <button
-            onClick={() => setActiveTab('monitor')}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
-              activeTab === 'monitor'
-                ? 'border-blue-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Live Monitoring
-          </button>
-          <button
-            onClick={() => setActiveTab('simulation')}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
-              activeTab === 'simulation'
-                ? 'border-cyan-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Settings2 className="w-3.5 h-3.5 text-cyan-400" />
-            Hardware Prototype Simulator
-            <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono">
-              PROTOTYPE
+      {/* Contextual Breadcrumb & Mode Strip */}
+      <div className="bg-slate-900/40 border-b border-white/5 py-2 px-4 sm:px-6 lg:px-8 text-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-400">
+            <span className="text-slate-500">Platform</span>
+            <span className="text-slate-600">/</span>
+            <span className="font-semibold text-cyan-300">
+              {activeTab === 'fleet' ? 'Fleet Overview' : activeTab === 'twin' ? 'Digital Twin Lab' : 'Stress Simulator'}
             </span>
-          </button>
+            {activeTab === 'fleet' && selectedAsset && (
+              <>
+                <span className="text-slate-600">/</span>
+                <span className="text-slate-300 font-mono">{selectedAsset.asset_id} ({selectedAsset.line})</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <span className="hidden sm:inline">Active Mode:</span>
+            <span className={`px-2 py-0.5 rounded font-mono font-medium ${
+              personaMode === 'operator' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' : 'bg-purple-500/10 text-purple-300 border border-purple-500/20'
+            }`}>
+              {personaMode === 'operator' ? 'Operator (Plain English)' : 'Engineer (Deep Diagnostics)'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -451,13 +457,18 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* ── Simulation Tab ── */}
-        {activeTab === 'simulation' && (
-          <SimulationDashboard assets={assets} onNotification={showToast} />
+        {/* ── Digital Twin Lab View ── */}
+        {activeTab === 'twin' && (
+          <SimulationDashboard assets={assets} onNotification={showToast} defaultViewMode="prototype" />
         )}
 
-        {/* ── Monitoring Tab content below ── */}
-        {activeTab === 'monitor' && (
+        {/* ── Stress Simulator View ── */}
+        {activeTab === 'simulator' && (
+          <SimulationDashboard assets={assets} onNotification={showToast} defaultViewMode="fleet" />
+        )}
+
+        {/* ── Fleet Overview View ── */}
+        {activeTab === 'fleet' && (
           <>
         {/* Key Operational Indicators Bar */}
         <StatsOverview assets={assets} alerts={alerts} />

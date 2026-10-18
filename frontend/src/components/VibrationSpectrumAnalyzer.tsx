@@ -705,32 +705,32 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
   };
 
   return (
-    <div className={`bg-slate-900/95 border border-slate-800 rounded-2xl p-4 shadow-2xl font-mono space-y-4 ${className}`}>
+    <div className={`glass-panel p-4 shadow-2xl space-y-4 ${className}`}>
       {/* ─── HEADER BAR: TITLE & TOOLBAR CONTROLS ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 text-cyan-400 shadow-md">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
             <Waves className="w-5 h-5 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-white text-sm tracking-wide">
-                MPU-6050 FFT Spectrum Analyzer
+                Vibration FFT Spectrum Analyzer
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
-                400kHz I2C · Radix-2 FFT
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                Radix-2 FFT · MPU-6050
               </span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-              <span>Bearing Defect Kinematics:</span>
-              <span className="text-cyan-300 font-bold">BPFI · BPFO · FTF · BSF</span>
-              <span>· ISO 10816 Class II</span>
+              <span>Bearing Fault Harmonics:</span>
+              <span className="text-cyan-300 font-medium">BPFI · BPFO · FTF · BSF</span>
+              <span>· ISO 10816 Standard</span>
             </div>
           </div>
         </div>
 
         {/* View mode switcher */}
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center gap-1 glass-cell p-1 rounded-xl border border-white/10 text-xs">
           {[
             { id: 'spectrum', label: 'FFT Power', icon: <Waves className="w-3.5 h-3.5" /> },
             { id: 'time', label: 'Time Wave az(t)', icon: <Activity className="w-3.5 h-3.5" /> },
