@@ -1220,7 +1220,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
           >
             {assets.map(a => (
               <option key={a.asset_id} value={a.asset_id}>
-                Asset {a.asset_id} ({a.line.toUpperCase()})
+                Machine {a.asset_id.replace(/asset_?/i, '')} ({a.line.replace('line', 'Line ').trim()})
               </option>
             ))}
           </select>

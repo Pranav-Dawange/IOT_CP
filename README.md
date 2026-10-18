@@ -27,11 +27,15 @@ FastAPI Backend & TimescaleDB Storage (backend/)
    ├─ REST API Endpoints (/health, /assets, /telemetry, /predictions, /alerts)
    └─ Real-Time WebSocket Event Stream (/ws/live)
    ↓
-Industrial Monitoring Dashboard (frontend/)
-   ├─ React 19 + TypeScript + Vite + Tailwind CSS v4 + Recharts
-   ├─ 20-Asset Fleet Overview & Real-Time Telemetry Curves
-   ├─ Frozen GRU Failure-Risk Trajectory vs 0.55 Decision Threshold Line
-   └─ Edge Diagnostics, Parameter Violations & Sequence Gap Alerts
+Industrial Monitoring Platform (frontend/)
+   ├─ React 19 + TypeScript + Vite + Tailwind CSS v4 + Recharts + Lucide Icons
+   ├─ Glassmorphism Design System with backdrop blur & reactive glow shaders
+   ├─ 5 Dedicated Webpages with URL Hash Routing (#fleet, #twin, #wiring, #vibration, #simulator)
+   ├─ Operator / Engineer Persona Modes (simplified glanceable vs. full diagnostic telemetry)
+   ├─ What-If Scenario Sandbox for interactive parametric risk simulation
+   ├─ Real-Time WebSocket Alerts Feed with unread badge tracking & silent edge updates
+   ├─ Resilient Error Boundaries isolating workbench views against runtime failures
+   └─ Frozen GRU Failure-Risk Trajectory vs 0.55 Decision Threshold Line
 ```
 
 ---
@@ -113,24 +117,30 @@ The stack exposes:
 
 ---
 
-## Hardware Prototype Simulator (v5.0 Academic Edition)
+## Application Studios & Monitoring Workbenches
 
-An interactive, realistic hardware digital twin and physical prototype simulator accessible via the **Hardware Prototype Simulator** tab:
+The platform is organized into 5 dedicated, full-width studios accessible directly via the top navigation bar or browser hash routes (`#fleet`, `#twin`, `#wiring`, `#vibration`, `#simulator`):
 
-### 1. Five Workbench Perspectives
-- 🌐 **3D Digital Twin (Three.js / WebGL)**: Interactive 3D physical rig with specular lighting, orbit controls (Rotate, Pan, Zoom), camera presets (Isometric, ESP32 Focus, Motor Focus, Top-Down), 3D flexible curved DuPont wires with traveling signal pulses, spinning 8-notch encoder disc, and stator thermal emission glow.
-- 🛠️ **Physical Breadboard Rig**: High-fidelity Fritzing-style hardware prototype featuring:
-  - **ESP32 DevKit V1**: Xtensa Dual-Core 240MHz MCU with dual 15-pin headers, EN/BOOT buttons, and Wi-Fi/MQTT status LEDs.
-  - **MB102 Power Supply**: Regulated 5.0V / 3.3V dual breadboard power module with latching switch.
-  - **Transducers**: Allegro ACS712 (±5A Hall current), LM393 slotted optical tachometer with spinning 8-notch disc, Maxim DS18B20 stainless waterproof stator probe (with physical 4.7kΩ axial pullup resistor), and InvenSense GY-521 MPU-6050 6-DOF IMU.
-  - **Actuators & Load**: 1-channel 5V Songle safety relay with EL817 optocoupler, and a 24V DC RS-775 industrial spindle motor with dynamic thermal glow and spinning impeller fan.
-  - **Curved DuPont Jumper Wires**: Flexible color-coded wiring with terminal sleeves, traveling signal packets, and bus filters (Power, I2C, ADC, Interrupts, 1-Wire, 24V Motor Circuit).
-- 🔌 **Interactive Breadboard Wiring Lab (Drag & Drop + ERC Engine)**: Hands-on virtual breadboard wiring with 28 interactive tie-points, cubic bezier DuPont jumper wire routing, customizable wire colors, and a real-time **Electrical Rule Check (ERC)** engine that diagnoses short circuits, overvoltage hazards, inverted I2C buses, and floating 1-Wire pullup lines.
-- 📐 **Circuit Schematic (IEEE Std 315-1975)**: Vector engineering schematic showing net connections, decoupling capacitors, optoisolator barrier, flyback diode, and the **2.1 kVRMS galvanic safety boundary** separating 3.3V/5V logic from the 24V motor circuit.
-- 📋 **Academic Pinout & Interconnect Matrix**: Engineering reference table detailing Component, Module Pin, ESP32 GPIO, Protocol, Logic Voltage Domain, Sampling Frequency, Transfer Function, and real-time live readings.
-- 💻 **ESP32 FreeRTOS C++ Firmware Viewer**: Production-ready C++ firmware displaying dual-core task affinity (Core 0: ADC polling & EMA noise filter; Core 1: MQTT serialization), `IRAM_ATTR` interrupt handler, and one-click code copy.
+### 1. Fleet Command Dashboard (`#fleet`)
+- **Fleet Grid & Quick Filtering**: Real-time overview of all 20 industrial CNC machines with status indicators (Nominal, Warning, Critical, Offline), tool wear progression, and instant machine selection.
+- **Parametric Telemetry Telemetry**: Live sensor trends (Air Temp, Process Temp, RPM, Torque, Tool Wear) with glowing area gradient shaders.
+- **Frozen GRU Failure-Risk Trajectory**: Horizon forecast plotting against the calibrated $\tau = 0.55$ decision boundary.
+- **Edge Alerts Drawer**: Filterable live drawer detailing machine alerts, timestamps, severity tags, and parameter violation metrics, automatically clearing unread count when reviewed.
+- **Persona Modes**: Operator mode (focused on high-level status & action items) and Engineer mode (unveils deep raw metrics, sequence buffers, and transfer calculations).
 
-### 2. Frequency Domain FFT Spectrum Analyzer (MPU-6050 Vibration)
+### 2. 3D Digital Twin Studio & Hardware Lab (`#twin`)
+- **3D Digital Twin (Three.js / WebGL)**: Interactive 3D physical rig with specular lighting, orbit controls (Rotate, Pan, Zoom), camera presets (Isometric, ESP32 Focus, Motor Focus, Top-Down), 3D flexible curved DuPont wires with traveling signal pulses, spinning 8-notch encoder disc, and stator thermal emission glow.
+- **Physical Breadboard Rig**: High-fidelity Fritzing-style hardware prototype featuring ESP32 DevKit V1, MB102 Power Supply, ACS712 current transducer, LM393 optical tachometer, DS18B20 stator probe, Songle safety relay, and 24V RS-775 spindle motor.
+- **Fluke 87V Digital Multimeter (DMM)**: Interactive test-point probing across 8 electrical test points with live voltage, frequency, and protocol signal dip verification.
+- **Academic Pinout & Interconnect Matrix**: Engineering reference table detailing Component, Module Pin, ESP32 GPIO, Protocol, Logic Voltage Domain, Sampling Frequency, and Transfer Function.
+- **ESP32 FreeRTOS C++ Firmware Viewer**: Dual-core FreeRTOS production C++ firmware with one-click clipboard copy.
+
+### 3. Interactive Breadboard Wiring Studio (`#wiring`)
+- **Drag & Drop DuPont Wiring CAD**: Hands-on virtual breadboard wiring with 28 interactive tie-points, cubic bezier routing, and 8-color palette selection.
+- **Real-Time Electrical Rule Check (ERC) Diagnostics**: Automated detection of short circuits (+5V/+3.3V to GND), 24V high-voltage gate destruction, inverted $I^2C$ bus lines (SDA/SCL swapped), and floating DS18B20 1-Wire pullup resistors.
+- **Viva Defense Scenario Presets**: Instant configuration presets (Nominal, Short Circuit, Inverted I2C, 24V Overvoltage) for academic demonstrations.
+
+### 4. Vibration Spectrum Analyzer (`#vibration`)
 Comprehensive frequency-domain vibration analysis instrument for mechanical bearing defect identification:
 - **Kinematic Fault Harmonics**: Live calculation of characteristic defect frequencies based on motor RPM and bearing geometry (standard RS-775 608ZZ bearing: $Z=8, d=3.967\text{mm}, D_p=20.0\text{mm}$):
   - $\text{BPFI} = \frac{Z}{2} f_r \left(1 + \frac{d}{D_p}\cos\alpha\right)$ (Inner Race Spalling with $f_r$ sidebands)
@@ -167,7 +177,12 @@ Interactive engineering CAD workbench allowing students and engineers to test br
   - **Floating Inputs**: Notifies when sensor outputs are left unconnected.
 - **Viva Defense Presets**: One-click scenario buttons to demonstrate Nominal Wiring, Short Circuit, Inverted $I^2C$, and 24V HV Injection during examinations.
 
-### 5. Fluke 87V Digital Multimeter (DMM) Tool
+### 5. Fleet Load & Stress Test Laboratory (`#simulator`)
+- **20-Asset Replay Matrix**: Synchronized grid monitoring all 20 machines streaming AI4I 2020 dataset slices across production lines (Line 1 to Line 4).
+- **Interactive Fault Injection Engine**: Inject high thermal loads, rapid tool wear surges, or torque spikes directly into running virtual telemetry.
+- **Stress-Test Scenarios**: Execute edge parameter violation drills to test real-time threshold tripping and GRU predictive failure-risk escalation.
+
+### 6. Fluke 87V Digital Multimeter (DMM) Tool
 Click **Multimeter Tool** to probe 8 physical test points:
 - `TP1: 5V_BUS` (+5.02 V DC)
 - `TP2: 3V3_MCU` (+3.31 V DC)
@@ -178,14 +193,14 @@ Click **Multimeter Tool** to probe 8 physical test points:
 - `TP7: RELAY_IN` (3.3V Normal / 0.0V Cutoff)
 - `TP8: MOTOR_24V` (+24.08 V DC Load Circuit)
 
-### 6. Academic Scenario Presets
+### 7. Academic Scenario Presets
 - 🟢 **Nominal CNC**: Baseline operation (1500 RPM, 38 Nm, 34°C, 1.2g, 15% GRU risk).
 - 🟠 **Bearing Degradation**: Tool wear & vibration surge to 3.8g (ISO 10816 Zone C).
 - 🛑 **Jammed Rotor Stall & Auto-Cutoff**: Current surges to 4.7A, triggering automatic Songle relay trip within **8.4ms**.
 - 🔥 **Thermal Crisis**: Fan failure with stator temperature reaching 45°C.
 - 📡 **Wi-Fi Dropout**: Demonstrates edge autonomy with local circular ring buffering.
 
-### 7. Printable Lab Report Generator
+### 8. Printable Lab Report Generator
 Click **Lab Report** to generate an academic engineering document including:
 - Document Abstract & System Architecture
 - Complete **Bill of Materials (BOM)** with component part numbers and total prototype pricing ($28.40)

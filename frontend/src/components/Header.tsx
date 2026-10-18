@@ -1,32 +1,29 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Activity,
-  AlertTriangle,
   Bell,
-  CheckCircle,
+  Boxes,
   ChevronDown,
+  Clock,
   Cpu,
   Database,
   Flame,
   HelpCircle,
   LayoutDashboard,
   Layers,
-  Radio,
+  MoreHorizontal,
   RefreshCw,
-  Search,
-  Settings,
   SlidersHorizontal,
   Sparkles,
   User,
-  Wrench,
+  Waves,
   Wifi,
   WifiOff,
-  Zap,
 } from 'lucide-react';
 import { ConnectionState } from '../api/websocket';
 import { SystemHealth } from '../types';
 
-export type MainNavigationTab = 'fleet' | 'twin' | 'simulator';
+export type PageRoute = 'fleet' | 'twin' | 'wiring' | 'vibration' | 'simulator';
 export type PersonaMode = 'operator' | 'engineer';
 
 interface HeaderProps {
@@ -37,8 +34,8 @@ interface HeaderProps {
   onRefreshHealth: () => void;
   onOpenDisclaimer: () => void;
   onOpenWhatIf?: () => void;
-  activeTab: MainNavigationTab;
-  onSelectTab: (tab: MainNavigationTab) => void;
+  currentPage: PageRoute;
+  onSelectPage: (page: PageRoute) => void;
   personaMode: PersonaMode;
   onTogglePersona: () => void;
   alertCount?: number;
@@ -53,8 +50,8 @@ export const Header: React.FC<HeaderProps> = ({
   onRefreshHealth,
   onOpenDisclaimer,
   onOpenWhatIf,
-  activeTab,
-  onSelectTab,
+  currentPage,
+  onSelectPage,
   personaMode,
   onTogglePersona,
   alertCount = 0,
@@ -65,72 +62,114 @@ export const Header: React.FC<HeaderProps> = ({
   const isSystemNominal = isWsConnected && isDbHealthy;
   const [showStatusPopover, setShowStatusPopover] = useState(false);
 
+  // Live clock & uptime
+  const [now, setNow] = useState(new Date());
+  const sessionStart = useRef(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const uptimeSec = Math.floor((now.getTime() - sessionStart.current) / 1000);
+  const uptimeStr = uptimeSec < 60
+    ? `${uptimeSec}s`
+    : uptimeSec < 3600
+    ? `${Math.floor(uptimeSec / 60)}m ${uptimeSec % 60}s`
+    : `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m`;
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  const navItems: Array<{ id: PageRoute; label: string; icon: React.ReactNode }> = [
+    { id: 'fleet', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4 text-cyan-400" /> },
+    { id: 'twin', label: '3D Model', icon: <Boxes className="w-4 h-4 text-blue-400" /> },
+    { id: 'wiring', label: 'Wiring Guide', icon: <Layers className="w-4 h-4 text-emerald-400" /> },
+    { id: 'vibration', label: 'Signal Health', icon: <Waves className="w-4 h-4 text-purple-400" /> },
+    { id: 'simulator', label: 'Load Test', icon: <Flame className="w-4 h-4 text-amber-400" /> },
+  ];
+
+  const [showOverflow, setShowOverflow] = useState(false);
+  const overflowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setShowOverflow(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950/70 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full bg-slate-950/80 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
           
           {/* ── 1. Brand & Logo ── */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0 cursor-pointer" onClick={() => onSelectPage('fleet')}>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
               <Activity className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                  Smart Asset Monitor
+                  Smart Machine Monitor
                 </span>
                 <span className="hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                  v2.0
+                  Studio v2.5
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block">
-                Predictive Maintenance & Digital Twin
+                Industrial Predictive Maintenance Platform
               </p>
             </div>
           </div>
 
-          {/* ── 2. Unified Primary Navigation Bar (Simple & Clear) ── */}
-          <nav className="flex items-center gap-1.5 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08] backdrop-blur-md">
-            {/* Tab 1: Fleet Overview */}
-            <button
-              onClick={() => onSelectTab('fleet')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'fleet'
-                  ? 'bg-gradient-to-r from-blue-600/40 to-cyan-600/40 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-              <span>Fleet Overview</span>
-            </button>
+          {/* ── 1b. Live Clock & Uptime ── */}
+          <div className="hidden lg:flex items-center gap-3 text-[10px] font-mono text-slate-400 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/[0.06]">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-cyan-500 opacity-70" />
+              <span className="text-white/80">{timeStr}</span>
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="flex items-center gap-1">
+              <span className="text-slate-500">UP</span>
+              <span className="text-emerald-400">{uptimeStr}</span>
+            </span>
+          </div>
 
-            {/* Tab 2: Digital Twin Lab */}
-            <button
-              onClick={() => onSelectTab('twin')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'twin'
-                  ? 'bg-gradient-to-r from-blue-600/40 to-cyan-600/40 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-            >
-              <Cpu className="w-4 h-4 text-cyan-400" />
-              <span>Digital Twin Lab</span>
-            </button>
-
-            {/* Tab 3: Stress Simulator */}
-            <button
-              onClick={() => onSelectTab('simulator')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'simulator'
-                  ? 'bg-gradient-to-r from-blue-600/40 to-cyan-600/40 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-            >
-              <Flame className="w-4 h-4 text-amber-400" />
-              <span>Stress Simulator</span>
-            </button>
+          {/* ── 2. Unified 5 Dedicated Webpages Navigation Bar ── */}
+          <nav className="hidden md:flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08] backdrop-blur-md">
+            {navItems.map((item) => {
+              const isActive = currentPage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectPage(item.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600/40 to-cyan-600/40 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </nav>
+
+          {/* Mobile page selector */}
+          <div className="flex md:hidden">
+            <select
+              value={currentPage}
+              onChange={(e) => onSelectPage(e.target.value as PageRoute)}
+              className="bg-slate-900 border border-slate-700 text-cyan-300 text-xs rounded-lg px-2.5 py-1.5"
+            >
+              {navItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* ── 3. Status Pill, Persona Switcher & Global Actions ── */}
           <div className="flex items-center gap-2">
@@ -154,8 +193,8 @@ export const Header: React.FC<HeaderProps> = ({
                     isSystemNominal ? 'bg-emerald-500' : 'bg-amber-500'
                   }`}></span>
                 </span>
-                <span className="hidden md:inline font-medium">
-                  {isSystemNominal ? 'System Live' : 'System Degraded'}
+                <span className="hidden xl:inline font-medium">
+                  {isSystemNominal ? 'System Live' : 'Degraded'}
                 </span>
                 <ChevronDown className="w-3 h-3 opacity-60" />
               </button>
@@ -212,18 +251,17 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Persona Switcher (Operator vs Engineer) */}
+            {/* Persona Switcher: Standard / Expert */}
             <button
               onClick={onTogglePersona}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white text-xs transition-all"
-              title={`Switch Mode (Current: ${personaMode.toUpperCase()})`}
+              title={`View mode: ${personaMode === 'operator' ? 'Standard (simplified)' : 'Expert (full details)'}`}
             >
               <User className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden lg:inline capitalize font-medium">{personaMode} Mode</span>
-              <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded ${
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                 personaMode === 'operator' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
               }`}>
-                {personaMode === 'operator' ? 'PLAIN' : 'TECH'}
+                {personaMode === 'operator' ? 'Standard' : 'Expert'}
               </span>
             </button>
 
@@ -231,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenAlerts}
               className="relative p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white transition-all"
-              title="Active Machine Alerts"
+              title="Active machine alerts"
             >
               <Bell className="w-4 h-4" />
               {alertCount > 0 && (
@@ -241,28 +279,37 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Specs & Methodology Modal Launcher */}
-            <button
-              onClick={onOpenDisclaimer}
-              className="hidden sm:flex items-center gap-1.5 p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white text-xs transition-all"
-              title="View Architecture Specifications & Academic Methodology"
-            >
-              <HelpCircle className="w-4 h-4 text-blue-400" />
-              <span className="hidden xl:inline">Specs</span>
-            </button>
-
-            {/* What-If Sandbox Pill Button */}
-            {onOpenWhatIf && (
+            {/* ⋯ Overflow menu for less-used actions */}
+            <div className="relative" ref={overflowRef}>
               <button
-                onClick={onOpenWhatIf}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600/90 to-cyan-600/90 hover:from-indigo-500 hover:to-cyan-500 text-white font-medium text-xs border border-cyan-400/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                title="Launch What-If Digital Twin Sandbox"
+                onClick={() => setShowOverflow(!showOverflow)}
+                className="p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white transition-all"
+                title="More options"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-200" />
-                <span className="hidden sm:inline">What-If Sandbox</span>
-                <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
+                <MoreHorizontal className="w-4 h-4" />
               </button>
-            )}
+              {showOverflow && (
+                <div className="absolute right-0 mt-2 w-52 py-1.5 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {onOpenWhatIf && (
+                    <button
+                      onClick={() => { setShowOverflow(false); onOpenWhatIf(); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>What-If Scenario</span>
+                      <Sparkles className="w-3 h-3 text-amber-300 ml-auto" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setShowOverflow(false); onOpenDisclaimer(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+                    <span>About this Platform</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
           </div>
 

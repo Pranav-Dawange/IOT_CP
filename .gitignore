@@ -75,5 +75,7 @@ frontend/.env.*
 Thumbs.db
 .antigravity/
 .gemini/
-
-
+*.log
+vite.config.ts.timestamp*
+.tempmediaStorage/
+scratch/

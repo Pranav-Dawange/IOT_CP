@@ -180,10 +180,12 @@ const DeviceCard: React.FC<{
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[device.status] || STATUS_DOT.UNKNOWN}`} />
-          <span className="text-xs font-bold text-white font-mono">{device.asset_id}</span>
+          <span className="text-xs font-bold text-white font-mono">
+            {device.asset_id.replace(/asset_?/i, 'Machine ')}
+          </span>
         </div>
         <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${LINE_COLORS[device.line] || 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-          {device.line}
+          {device.line.replace('line', 'Line ')}
         </span>
       </div>
 
@@ -198,7 +200,7 @@ const DeviceCard: React.FC<{
         <div className="bg-slate-900/60 rounded p-1">
           <div className="text-[9px] text-slate-400 uppercase font-mono">Wear</div>
           <div className={`text-[11px] font-bold font-mono ${(device.tool_wear ?? 0) > 200 ? 'text-rose-400' : 'text-slate-200'}`}>
-            {device.tool_wear != null ? `${device.tool_wear.toFixed(0)} m` : '—'}
+            {device.tool_wear != null ? `${device.tool_wear.toFixed(0)} min` : '—'}
           </div>
         </div>
         <div className="bg-slate-900/60 rounded p-1">
@@ -399,13 +401,13 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
           </div>
           <div>
             <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
-              Simulation Control Center
+              Fleet Load & Stress Test Laboratory
               <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-normal">
-                simulation branch
+                Fault Injection Engine
               </span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Monitor all 20 synthetic assets · Deploy scenarios · Inject faults in real-time
+              Monitor all 20 machines · Deploy failure scenarios · Stress test edge detection in real time
             </p>
           </div>
         </div>
@@ -574,9 +576,9 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-blue-400" />
+            <Layers className="w-4 h-4 text-cyan-400" />
             <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-              Device Fleet — 20 Assets
+              Machine Fleet — 20 Units
             </h3>
           </div>
 
@@ -586,13 +588,13 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
               <button
                 key={line}
                 onClick={() => setSelectedLine(line)}
-                className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors border ${
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all border ${
                   selectedLine === line
-                    ? 'bg-blue-600 border-blue-500 text-white'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                    ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40 font-semibold shadow-sm'
+                    : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {line === 'all' ? 'All' : line}
+                {line === 'all' ? 'All Lines' : line.replace('line', 'Line ')}
               </button>
             ))}
           </div>
