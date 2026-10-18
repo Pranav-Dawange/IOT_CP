@@ -30,15 +30,17 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity, AlertOctagon, AlertTriangle, ArrowRight, Binary, Camera,
+  Activity, AlertOctagon, AlertTriangle, ArrowRight, Binary, Boxes, Camera,
   CheckCircle2, ChevronLeft, ChevronRight, Code2, Copy, Cpu, Crosshair,
   Download, Eye, FileDown, FileText, Flame, Gauge, HelpCircle,
   Info, Layers, Leaf, MonitorSpeaker, MousePointer, Play, Power,
   Printer, Radio, RefreshCw, RotateCw, ShieldAlert, Sliders,
-  Sparkles, Terminal, Thermometer, Volume2, VolumeX, Wifi, WifiOff,
+  Sparkles, Terminal, Thermometer, Volume2, VolumeX, Waves, Wifi, WifiOff,
   Wrench, X, Zap, ZoomIn
 } from 'lucide-react';
 import { Asset } from '../types';
+import { MachinePrototype3D } from './MachinePrototype3D';
+import { VibrationSpectrumAnalyzer } from './VibrationSpectrumAnalyzer';
 
 // ─── INTERFACES ─────────────────────────────────────────────────────────────
 interface MachineSimulatorProps {
@@ -542,8 +544,8 @@ function OscilloscopeWave({ waveform, color, amplitude = 1, frequency = 1 }:
 export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ assets, onInjectFault }) => {
   // Navigation & View States
   const [selectedAssetId, setSelectedAssetId] = useState('asset_01');
-  const [workbenchView, setWorkbenchView] = useState<'breadboard' | 'schematic' | 'pinout' | 'firmware'>('breadboard');
-  const [activeTab, setActiveTab] = useState<'bench' | 'scope' | 'serial' | 'mqtt' | 'sustainability'>('bench');
+  const [workbenchView, setWorkbenchView] = useState<'3d' | 'breadboard' | 'schematic' | 'pinout' | 'firmware'>('3d');
+  const [activeTab, setActiveTab] = useState<'bench' | 'fft' | 'scope' | 'serial' | 'mqtt' | 'sustainability'>('bench');
   const [isManualMode, setIsManualMode] = useState(false);
   const [benchPowerOn, setBenchPowerOn] = useState(true);
   const [relayTripped, setRelayTripped] = useState(false);
@@ -1184,8 +1186,18 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
 
       {/* ─── WORKBENCH VIEW SWITCHER TABS & WIRE FILTER ─── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs font-mono">
-        {/* 4 Main Views */}
+        {/* 5 Main Views */}
         <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button
+            id="btn-view-3d"
+            onClick={() => setWorkbenchView('3d')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+              workbenchView === '3d' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Boxes className="w-3.5 h-3.5" />
+            <span>3D Digital Twin</span>
+          </button>
           <button
             id="btn-view-breadboard"
             onClick={() => setWorkbenchView('breadboard')}
@@ -1194,7 +1206,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Breadboard Rig</span>
+            <span>2D Breadboard</span>
           </button>
           <button
             id="btn-view-schematic"
@@ -1263,7 +1275,9 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
               <div className="flex items-center gap-2.5">
                 <div className={`w-3 h-3 rounded-full ${!benchPowerOn ? 'bg-slate-600' : relayTripped ? 'bg-rose-500 animate-ping' : telemetry.risk >= 0.55 ? 'bg-amber-400 animate-bounce' : 'bg-emerald-400 animate-pulse'}`} />
                 <span className="text-xs font-mono font-bold text-white tracking-wider">
-                  {workbenchView === 'breadboard'
+                  {workbenchView === '3d'
+                    ? '3D INTERACTIVE DIGITAL TWIN (WEBGL)'
+                    : workbenchView === 'breadboard'
                     ? 'PHYSICAL BREADBOARD LAB RIG'
                     : workbenchView === 'schematic'
                     ? 'IEEE CIRCUIT SCHEMATIC & GALVANIC ISOLATION'
@@ -1281,6 +1295,21 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                 </span>
               </div>
             </div>
+
+            {/* ── VIEW 0: 3D INTERACTIVE DIGITAL TWIN (WEBGL) ── */}
+            {workbenchView === '3d' && (
+              <div className="my-3">
+                <MachinePrototype3D
+                  telemetry={telemetry}
+                  benchPowerOn={benchPowerOn}
+                  relayTripped={relayTripped}
+                  wifiSignal={wifiSignal}
+                  selectedComponentId={selectedComponentId}
+                  onSelectComponent={(id) => setSelectedComponentId(id)}
+                  wireBusFilter={wireBusFilter}
+                />
+              </div>
+            )}
 
             {/* ── VIEW 1: VIRTUAL BREADBOARD RIG ── */}
             {workbenchView === 'breadboard' && (
@@ -2190,6 +2219,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
           <div className="flex items-center gap-1 p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono">
             {[
               { id: 'bench', label: 'Sensors', icon: <Activity className="w-3.5 h-3.5" /> },
+              { id: 'fft', label: 'FFT Spectrum', icon: <Waves className="w-3.5 h-3.5" /> },
               { id: 'scope', label: 'Oscilloscope', icon: <MonitorSpeaker className="w-3.5 h-3.5" /> },
               { id: 'serial', label: 'Serial UART', icon: <Terminal className="w-3.5 h-3.5" /> },
               { id: 'mqtt', label: 'MQTT Trace', icon: <Radio className="w-3.5 h-3.5" /> },
@@ -2307,6 +2337,33 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                 ))}
               </div>
 
+              {/* Quick Launch: FFT Vibration Spectrum Analyzer */}
+              <div
+                onClick={() => setActiveTab('fft')}
+                className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-slate-950 border border-cyan-800/60 flex items-center justify-between cursor-pointer hover:border-cyan-400 hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 group-hover:scale-105 transition-transform">
+                    <Waves className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                      <span>FFT Bearing Spectrum Analyzer</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
+                        LIVE
+                      </span>
+                    </div>
+                    <div className="text-[9px] text-slate-400">
+                      Harmonics: BPFI · BPFO · FTF · BSF · Kurtosis & Crest Factor
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                  <span>Open FFT</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
               {/* GRU Neural Network Risk Bar */}
               <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
                 <div className="flex justify-between items-center text-xs mb-2">
@@ -2341,6 +2398,17 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
             </div>
           )}
 
+          {/* ── TAB: MPU-6050 FFT SPECTRUM ANALYZER (BEARING FAULT FREQUENCIES) ── */}
+          {activeTab === 'fft' && (
+            <VibrationSpectrumAnalyzer
+              rpm={telemetry.rpm}
+              vibrationG={telemetry.vibrationG}
+              isBearingWearActive={vibrationFault}
+              onToggleBearingWear={(active) => setVibrationFault(active)}
+              isPowered={benchPowerOn && !relayTripped}
+            />
+          )}
+
           {/* ── TAB 2: VIRTUAL OSCILLOSCOPE (4 CHANNELS) ── */}
           {activeTab === 'scope' && (
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 font-mono">
@@ -2361,7 +2429,18 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                   <div key={ch.id} className="rounded-xl overflow-hidden border border-slate-800">
                     <div className="flex items-center justify-between px-2.5 py-1 bg-slate-950">
                       <span className="text-[10px] font-bold text-slate-300">{ch.label}</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">{ch.note}</span>
+                      <div className="flex items-center gap-2">
+                        {ch.id === 'mpu6050' && (
+                          <button
+                            onClick={() => setActiveTab('fft')}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 font-bold flex items-center gap-1 transition-colors"
+                          >
+                            <Waves className="w-2.5 h-2.5" />
+                            <span>FFT Spectrum</span>
+                          </button>
+                        )}
+                        <span className="text-[10px] text-emerald-400 font-mono">{ch.note}</span>
+                      </div>
                     </div>
                     <OscilloscopeWave
                       waveform={COMPONENT_DETAILS[ch.id].scopeWaveform}

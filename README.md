@@ -117,7 +117,8 @@ The stack exposes:
 
 An interactive, realistic hardware digital twin and physical prototype simulator accessible via the **Hardware Prototype Simulator** tab:
 
-### 1. Four Workbench Perspectives
+### 1. Five Workbench Perspectives
+- 🌐 **3D Digital Twin (Three.js / WebGL)**: Interactive 3D physical rig with specular lighting, orbit controls (Rotate, Pan, Zoom), camera presets (Isometric, ESP32 Focus, Motor Focus, Top-Down), 3D flexible curved DuPont wires with traveling signal pulses, spinning 8-notch encoder disc, and stator thermal emission glow.
 - 🛠️ **Physical Breadboard Rig**: High-fidelity Fritzing-style hardware prototype featuring:
   - **ESP32 DevKit V1**: Xtensa Dual-Core 240MHz MCU with dual 15-pin headers, EN/BOOT buttons, and Wi-Fi/MQTT status LEDs.
   - **MB102 Power Supply**: Regulated 5.0V / 3.3V dual breadboard power module with latching switch.
@@ -128,7 +129,24 @@ An interactive, realistic hardware digital twin and physical prototype simulator
 - 📋 **Academic Pinout & Interconnect Matrix**: Engineering reference table detailing Component, Module Pin, ESP32 GPIO, Protocol, Logic Voltage Domain, Sampling Frequency, Transfer Function, and real-time live readings.
 - 💻 **ESP32 FreeRTOS C++ Firmware Viewer**: Production-ready C++ firmware displaying dual-core task affinity (Core 0: ADC polling & EMA noise filter; Core 1: MQTT serialization), `IRAM_ATTR` interrupt handler, and one-click code copy.
 
-### 2. Fluke 87V Digital Multimeter (DMM) Tool
+### 2. Frequency Domain FFT Spectrum Analyzer (MPU-6050 Vibration)
+Comprehensive frequency-domain vibration analysis instrument for mechanical bearing defect identification:
+- **Kinematic Fault Harmonics**: Live calculation of characteristic defect frequencies based on motor RPM and bearing geometry (standard RS-775 608ZZ bearing: $Z=8, d=3.967\text{mm}, D_p=20.0\text{mm}$):
+  - $\text{BPFI} = \frac{Z}{2} f_r \left(1 + \frac{d}{D_p}\cos\alpha\right)$ (Inner Race Spalling with $f_r$ sidebands)
+  - $\text{BPFO} = \frac{Z}{2} f_r \left(1 - \frac{d}{D_p}\cos\alpha\right)$ (Outer Race Fluting & $2\times$ harmonic)
+  - $\text{FTF} = \frac{1}{2} f_r \left(1 - \frac{d}{D_p}\cos\alpha\right)$ (Fundamental Train / Cage Defect)
+  - $\text{BSF} = \frac{D_p}{2d} f_r \left(1 - \left(\frac{d}{D_p}\cos\alpha\right)^2\right)$ (Ball Spin Defect)
+- **Interactive FFT Display**:
+  - HTML5 Canvas rendering at 60 FPS with neon glow power spectral density (PSD) curve.
+  - Linear ($g$ RMS) and Logarithmic ($\text{dB}$) scale toggles, frequency spans ($200\text{Hz}, 500\text{Hz}, 1000\text{Hz}$).
+  - Live cursor frequency tracker HUD and labeled fault marker flags.
+- **Dual Domain & Viva Equations**:
+  - Time-Domain $a_z(t)$ oscillogram view alongside FFT power spectrum.
+  - Interactive Viva Defense equations view substituting active motor parameters in real-time.
+  - Web Audio sonic demodulation generating acoustic impact clicks matching the defect frequency.
+- **Statistical Condition Metrics**: Live calculation of Crest Factor ($CF = \text{Peak}/\text{RMS}$), Kurtosis ($\beta_2$), and ISO 10816 Zone classification (A/B/C/D).
+
+### 3. Fluke 87V Digital Multimeter (DMM) Tool
 Click **Multimeter Tool** to probe 8 physical test points:
 - `TP1: 5V_BUS` (+5.02 V DC)
 - `TP2: 3V3_MCU` (+3.31 V DC)
@@ -139,14 +157,14 @@ Click **Multimeter Tool** to probe 8 physical test points:
 - `TP7: RELAY_IN` (3.3V Normal / 0.0V Cutoff)
 - `TP8: MOTOR_24V` (+24.08 V DC Load Circuit)
 
-### 3. Academic Scenario Presets
+### 4. Academic Scenario Presets
 - 🟢 **Nominal CNC**: Baseline operation (1500 RPM, 38 Nm, 34°C, 1.2g, 15% GRU risk).
 - 🟠 **Bearing Degradation**: Tool wear & vibration surge to 3.8g (ISO 10816 Zone C).
 - 🛑 **Jammed Rotor Stall & Auto-Cutoff**: Current surges to 4.7A, triggering automatic Songle relay trip within **8.4ms**.
 - 🔥 **Thermal Crisis**: Fan failure with stator temperature reaching 45°C.
 - 📡 **Wi-Fi Dropout**: Demonstrates edge autonomy with local circular ring buffering.
 
-### 4. Printable Lab Report Generator
+### 5. Printable Lab Report Generator
 Click **Lab Report** to generate an academic engineering document including:
 - Document Abstract & System Architecture
 - Complete **Bill of Materials (BOM)** with component part numbers and total prototype pricing ($28.40)
