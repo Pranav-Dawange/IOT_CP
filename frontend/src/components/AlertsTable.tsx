@@ -92,9 +92,9 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+    <div className="glass-panel p-4 space-y-3">
       {/* Table Header & Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400">
             <ShieldAlert className="w-4 h-4" />
@@ -121,7 +121,9 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
                   : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
               }`}
             >
-              {filterAsset ? `Only ${selectedAssetId}` : `Filter by ${selectedAssetId}`}
+              {filterAsset
+                ? `Only ${selectedAssetId.replace(/asset_?/i, 'Machine ')}`
+                : `Filter by ${selectedAssetId.replace(/asset_?/i, 'Machine ')}`}
             </button>
           )}
 
@@ -129,7 +131,7 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-md px-2 py-1 text-slate-300 text-xs focus:outline-none focus:border-blue-500"
+            className="bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-slate-300 text-xs focus:outline-none focus:border-cyan-400"
           >
             <option value="all">All Severities</option>
             <option value="CRITICAL">Critical</option>
@@ -141,7 +143,7 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-md px-2 py-1 text-slate-300 text-xs focus:outline-none focus:border-blue-500"
+            className="bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-slate-300 text-xs focus:outline-none focus:border-cyan-400"
           >
             <option value="all">All Alert Types</option>
             <option value="SENSOR_THRESHOLD_ANOMALY">Threshold Anomalies</option>
@@ -165,20 +167,20 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px]">
                 <th className="py-2.5 px-3">Timestamp</th>
-                <th className="py-2.5 px-3">Asset</th>
+                <th className="py-2.5 px-3">Machine</th>
                 <th className="py-2.5 px-3">Severity</th>
                 <th className="py-2.5 px-3">Type</th>
                 <th className="py-2.5 px-3">Message</th>
                 <th className="py-2.5 px-3">Diagnostics</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+            <tbody className="divide-y divide-white/5 font-mono text-[11px]">
               {filteredAlerts.slice(0, 25).map((alert, idx) => (
                 <tr
                   key={alert.id ?? idx}
-                  className="hover:bg-slate-800/40 transition-colors"
+                  className="hover:bg-white/[0.04] transition-colors"
                 >
                   <td className="py-2 px-3 text-slate-400 whitespace-nowrap">
                     {alert.timestamp
@@ -188,11 +190,11 @@ export const AlertsTable: React.FC<AlertsTableProps> = ({ alerts, selectedAssetI
                   <td className="py-2 px-3">
                     <button
                       onClick={() => onSelectAsset && onSelectAsset(alert.asset_id)}
-                      className="text-blue-400 hover:underline font-semibold"
+                      className="text-cyan-400 hover:underline font-semibold"
                     >
-                      {alert.asset_id}
+                      {alert.asset_id.replace(/asset_?/i, 'Machine ')}
                     </button>
-                    {alert.line && <span className="text-slate-400 text-[10px] ml-1 font-sans">({alert.line})</span>}
+                    {alert.line && <span className="text-slate-400 text-[10px] ml-1 font-sans">({alert.line.replace('line', 'Line ')})</span>}
                   </td>
                   <td className="py-2 px-3 whitespace-nowrap">{severityBadge(alert.severity)}</td>
                   <td className="py-2 px-3 whitespace-nowrap">{alertTypeBadge(alert.alert_type)}</td>

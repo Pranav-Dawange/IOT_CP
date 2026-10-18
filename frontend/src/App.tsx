@@ -1,16 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowUpRight,
   CheckCircle2,
-  Database,
-  Flame,
-  Gauge,
-  Layers,
   RefreshCw,
-  Search,
-  SlidersHorizontal,
-  Thermometer,
+  Waves,
   WifiOff,
   Wrench,
 } from 'lucide-react';
@@ -18,14 +11,14 @@ import {
 import { apiClient } from './api/client';
 import { ConnectionState, liveWs } from './api/websocket';
 import { AlertsTable } from './components/AlertsTable';
-import { AssetFilter } from './components/AssetFilter';
-import { AssetGrid } from './components/AssetGrid';
 import { DisclaimerModal } from './components/DisclaimerModal';
-import { Header } from './components/Header';
-import { OperatorControlPanel } from './components/OperatorControlPanel';
-import { RiskGaugeChart } from './components/RiskGaugeChart';
-import { StatsOverview } from './components/StatsOverview';
-import { TelemetryCharts } from './components/TelemetryCharts';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { FleetCommandCenter } from './components/FleetCommandCenter';
+import { Header, PageRoute } from './components/Header';
+import { InteractiveBreadboardWiring } from './components/InteractiveBreadboardWiring';
+import { MachinePrototypeSimulator } from './components/MachinePrototypeSimulator';
+import { SimulationDashboard } from './components/SimulationDashboard';
+import { VibrationSpectrumAnalyzer } from './components/VibrationSpectrumAnalyzer';
 import { WhatIfSandboxModal } from './components/WhatIfSandboxModal';
 import { Asset, EdgeAlert, LiveEvent, Prediction, SystemHealth, TelemetryRecord, WorkOrder } from './types';
 
@@ -36,6 +29,7 @@ export const App: React.FC = () => {
   const [telemetryHistory, setTelemetryHistory] = useState<Record<string, TelemetryRecord[]>>({});
   const [predictionHistory, setPredictionHistory] = useState<Record<string, Prediction[]>>({});
   const [alerts, setAlerts] = useState<EdgeAlert[]>([]);
+  const [unreadAlertCount, setUnreadAlertCount] = useState<number>(0);
   const [health, setHealth] = useState<SystemHealth | null>(null);
 
   // Connection & Loading States
@@ -45,7 +39,16 @@ export const App: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState<boolean>(false);
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<PageRoute>(() => {
+    const hash = window.location.hash.replace('#', '') as PageRoute;
+    return ['fleet', 'twin', 'wiring', 'vibration', 'simulator'].includes(hash) ? hash : 'fleet';
+  });
+  const [personaMode, setPersonaMode] = useState<'operator' | 'engineer'>('operator');
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'warning' | 'info' }>>([]);
+
+
+  // ── Page transition key (increments on page change to re-mount animation) ─
+  const [pageKey, setPageKey] = useState(0);
 
   const showToast = (message: string, type: 'success' | 'warning' | 'info' = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -54,6 +57,41 @@ export const App: React.FC = () => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
   };
+
+  const handleSelectPage = (page: PageRoute) => {
+    setCurrentPage(page);
+    setPageKey((k) => k + 1);
+    window.location.hash = page;
+  };
+
+  // ── Keyboard shortcuts: 1–5 = pages, Esc = close modals ──────────────────
+  useEffect(() => {
+    const pages: PageRoute[] = ['fleet', 'twin', 'wiring', 'vibration', 'simulator'];
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'Escape') {
+        setIsDisclaimerOpen(false);
+        setIsWhatIfOpen(false);
+      } else if (e.key >= '1' && e.key <= '5') {
+        const idx = parseInt(e.key, 10) - 1;
+        if (pages[idx]) handleSelectPage(pages[idx]);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as PageRoute;
+      if (['fleet', 'twin', 'wiring', 'vibration', 'simulator'].includes(hash)) {
+        setCurrentPage(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Filter States
   const [selectedLine, setSelectedLine] = useState<string>('all');
@@ -249,6 +287,8 @@ export const App: React.FC = () => {
       const alert = event.data;
       if (!alert) return;
       setAlerts((prev) => [alert, ...prev.slice(0, 99)]);
+      // Increment unread badge — only new WS alerts count, not historical pre-loads
+      setUnreadAlertCount((c) => c + 1);
     });
 
     // 4. Live Asset Status
@@ -275,7 +315,7 @@ export const App: React.FC = () => {
     const unsubWorkOrder = liveWs.on<WorkOrder>('work_order', (event: LiveEvent<WorkOrder>) => {
       const wo = event.data;
       if (wo) {
-        showToast(`📋 Work Order ${wo.work_order_id} dispatched for ${wo.asset_id}!`, 'info');
+        showToast(`📋 Work Order ${wo.work_order_id} dispatched for ${wo.asset_id.replace(/asset_?/i, 'Machine ')}!`, 'info');
       }
     });
 
@@ -362,7 +402,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Top Application Header */}
+      {/* Top Application Header & Unified Navigation */}
       <Header
         wsState={wsState}
         health={health}
@@ -371,20 +411,30 @@ export const App: React.FC = () => {
         onRefreshHealth={refreshHealth}
         onOpenDisclaimer={() => setIsDisclaimerOpen(true)}
         onOpenWhatIf={() => setIsWhatIfOpen(true)}
+        currentPage={currentPage}
+        onSelectPage={handleSelectPage}
+        personaMode={personaMode}
+        onTogglePersona={() => setPersonaMode((p) => (p === 'operator' ? 'engineer' : 'operator'))}
+        alertCount={unreadAlertCount}
+        onOpenAlerts={() => {
+          handleSelectPage('fleet');
+          setUnreadAlertCount(0); // Mark all as read when user opens the feed
+          showToast(`Showing ${alerts.length} fleet alerts in Fleet Command.`, 'info');
+        }}
       />
 
-      {/* Main Dashboard Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+      {/* Main Dashboard Container (100% Full-Width Edge-to-Edge) */}
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {/* API Error Notification Banner */}
         {apiError && (
           <div className="bg-rose-950/80 border border-rose-800 text-rose-200 rounded-lg p-3.5 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-2.5 text-xs">
               <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
               <div>
-                <span className="font-bold">Backend Connection Error: </span>
-                <span>{apiError}</span>
+                <span className="font-bold">Could not reach the server. </span>
+                <span>Please make sure the backend is running.</span>
                 <span className="block text-[11px] text-rose-300/80 mt-0.5">
-                  Verify the FastAPI backend is running (<code className="text-white">http://localhost:8000</code>).
+                  Expected at: <code className="text-white">http://localhost:8000</code>
                 </span>
               </div>
             </div>
@@ -404,7 +454,7 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <WifiOff className="w-4 h-4 text-amber-400" />
               <span>
-                <strong>WebSocket stream disconnected:</strong> Real-time streaming paused. Automatic reconnection active...
+                <strong>Live stream paused.</strong> Reconnecting automatically...
               </span>
             </div>
             <button
@@ -416,112 +466,109 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Key Operational Indicators Bar */}
-        <StatsOverview assets={assets} alerts={alerts} />
-
-        {/* Selected Asset Deep Dive Section */}
-        {selectedAsset && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                  Active Asset Deep Dive: {selectedAsset.asset_id} ({selectedAsset.line})
-                </h2>
-              </div>
-              <span className="text-xs text-slate-400">
-                Click any asset card below to inspect its live curves and GRU failure risk
-              </span>
-            </div>
-
-            {/* Interactive Operator Control Center */}
-            <OperatorControlPanel
-              asset={selectedAsset}
+        {/* ── Page 1: Dashboard (Machine Fleet Overview) ── */}
+        {currentPage === 'fleet' && (
+          <ErrorBoundary fallbackTitle="Fleet Dashboard Unavailable">
+            <div key={pageKey} className="animate-page-in">
+              <FleetCommandCenter
+              assets={assets}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={setSelectedAssetId}
+              telemetryHistory={telemetryHistory}
+              predictionHistory={predictionHistory}
+              alerts={alerts}
+              isLoading={isLoading}
               onOpenWhatIf={() => setIsWhatIfOpen(true)}
               onRefreshData={loadInitialData}
               onNotification={showToast}
+              personaMode={personaMode}
+              onClearUnreadAlerts={() => setUnreadAlertCount(0)}
             />
-
-            {/* GRU Risk Trajectory & Sensor Telemetry Side-by-Side or Stacked */}
-            <div className="grid grid-cols-1 gap-5">
-              {/* Failure Risk Score & Progression */}
-              <RiskGaugeChart
-                asset={selectedAsset}
-                predictions={selectedPredictions}
-                isLoading={isLoading}
-              />
-
-              {/* Real-Time Sensor Telemetry Charts */}
-              <TelemetryCharts
-                asset={selectedAsset}
-                telemetry={selectedTelemetry}
-                isLoading={isLoading}
-              />
             </div>
-          </section>
+          </ErrorBoundary>
         )}
 
-        {/* All Monitored Assets Grid Section */}
-        <section className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                Asset Fleet Overview (20 Assets)
-              </h2>
+        {/* ── Page 2: 3D Model (3D Digital Twin Studio & Hardware Lab) ── */}
+        {currentPage === 'twin' && (
+          <ErrorBoundary fallbackTitle="3D Digital Twin Studio Unavailable">
+            <div key={pageKey} className="w-full animate-page-in">
+              <MachinePrototypeSimulator assets={assets} />
             </div>
-          </div>
+          </ErrorBoundary>
+        )}
 
-          {/* Filtering & Search Toolbar */}
-          <AssetFilter
-            selectedLine={selectedLine}
-            selectedStatus={selectedStatus}
-            searchTerm={searchTerm}
-            onSelectLine={setSelectedLine}
-            onSelectStatus={setSelectedStatus}
-            onSearchChange={setSearchTerm}
-            onResetFilters={handleResetFilters}
-            totalMatching={filteredAssets.length}
-          />
+        {/* ── Page 3: Wiring Guide (Interactive Hardware Wiring) ── */}
+        {currentPage === 'wiring' && (
+          <ErrorBoundary fallbackTitle="Wiring Guide Studio Unavailable">
+            <div key={pageKey} className="w-full animate-page-in">
+              <InteractiveBreadboardWiring />
+            </div>
+          </ErrorBoundary>
+        )}
 
-          {/* Responsive Asset Cards Grid */}
-          <AssetGrid
-            assets={filteredAssets}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={(id) => setSelectedAssetId(id)}
-            isLoading={isLoading}
-            onResetFilters={handleResetFilters}
-          />
-        </section>
+        {/* ── Page 4: Signal Health (Vibration & Frequency Diagnostics) ── */}
+        {currentPage === 'vibration' && (
+          <ErrorBoundary fallbackTitle="Vibration Diagnostics Unavailable">
+            <div key={pageKey} className="w-full space-y-4 animate-page-in">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-xl glass-panel text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/40">
+                    <Waves className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-xs tracking-wide">
+                      FFT Spectral Analysis &amp; Bearing Diagnostics
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Real-time envelope demodulation, ISO 10816 velocity severity &amp; defect harmonics
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">Selected Machine:</span>
+                  <select
+                    value={selectedAssetId || 'asset_01'}
+                    onChange={(e) => setSelectedAssetId(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-cyan-300 focus:outline-none focus:border-cyan-500"
+                  >
+                    {assets.map((a) => (
+                      <option key={a.asset_id} value={a.asset_id}>
+                        Machine {a.asset_id.replace(/asset_?/i, '')} ({a.line.replace('line', 'Line ')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <VibrationSpectrumAnalyzer
+                rpm={selectedAsset?.latest_telemetry?.rotational_speed ?? 1750}
+                vibrationG={selectedAsset?.latest_telemetry ? ((selectedAsset.latest_telemetry.torque ?? 30) / 40) : 0.8}
+              />
+            </div>
+          </ErrorBoundary>
+        )}
 
-        {/* Recent Diagnostics & Sequence Gaps Feed */}
-        <section className="pt-2">
-          <AlertsTable
-            alerts={alerts}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={(id) => setSelectedAssetId(id)}
-          />
-        </section>
+        {/* ── Page 5: Load Test (Fleet Stress & Fault Injection) ── */}
+        {currentPage === 'simulator' && (
+          <ErrorBoundary fallbackTitle="Load Test Simulator Unavailable">
+            <div key={pageKey} className="w-full animate-page-in">
+              <SimulationDashboard assets={assets} onNotification={showToast} defaultViewMode="fleet" />
+            </div>
+          </ErrorBoundary>
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>
-            Smart Industrial Asset Monitoring & Failure Prediction System • Phase 7 Live Dashboard
+      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-400 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-slate-500">
+            AI-Powered Industrial Maintenance Platform &bull; Real-time machine health monitoring
           </p>
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span>Model: Frozen 2-Layer GRU</span>
-            <span>•</span>
-            <span>Threshold: 0.55</span>
-            <span>•</span>
-            <button
-              onClick={() => setIsDisclaimerOpen(true)}
-              className="text-blue-400 hover:underline"
-            >
-              Methodological Disclaimer
-            </button>
-          </div>
+          <button
+            onClick={() => setIsDisclaimerOpen(true)}
+            className="text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2"
+          >
+            About &amp; Methodology
+          </button>
         </div>
       </footer>
 
