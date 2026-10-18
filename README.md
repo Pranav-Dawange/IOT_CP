@@ -102,8 +102,57 @@ Open your browser to:
 Alternatively, run the entire containerized stack with Docker Compose:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
+
+The stack exposes:
+- **Frontend Dashboard & Hardware Simulator:** [http://localhost:3000](http://localhost:3000)
+- **FastAPI REST API & Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **TimescaleDB Database:** `localhost:5433` (PostgreSQL 16)
+- **Mosquitto MQTT Broker:** `localhost:1883`
+
+---
+
+## Hardware Prototype Simulator (v5.0 Academic Edition)
+
+An interactive, realistic hardware digital twin and physical prototype simulator accessible via the **Hardware Prototype Simulator** tab:
+
+### 1. Four Workbench Perspectives
+- 🛠️ **Physical Breadboard Rig**: High-fidelity Fritzing-style hardware prototype featuring:
+  - **ESP32 DevKit V1**: Xtensa Dual-Core 240MHz MCU with dual 15-pin headers, EN/BOOT buttons, and Wi-Fi/MQTT status LEDs.
+  - **MB102 Power Supply**: Regulated 5.0V / 3.3V dual breadboard power module with latching switch.
+  - **Transducers**: Allegro ACS712 (±5A Hall current), LM393 slotted optical tachometer with spinning 8-notch disc, Maxim DS18B20 stainless waterproof stator probe (with physical 4.7kΩ axial pullup resistor), and InvenSense GY-521 MPU-6050 6-DOF IMU.
+  - **Actuators & Load**: 1-channel 5V Songle safety relay with EL817 optocoupler, and a 24V DC RS-775 industrial spindle motor with dynamic thermal glow and spinning impeller fan.
+  - **Curved DuPont Jumper Wires**: Flexible color-coded wiring with terminal sleeves, traveling signal packets, and bus filters (Power, I2C, ADC, Interrupts, 1-Wire, 24V Motor Circuit).
+- 📐 **Circuit Schematic (IEEE Std 315-1975)**: Vector engineering schematic showing net connections, decoupling capacitors, optoisolator barrier, flyback diode, and the **2.1 kVRMS galvanic safety boundary** separating 3.3V/5V logic from the 24V motor circuit.
+- 📋 **Academic Pinout & Interconnect Matrix**: Engineering reference table detailing Component, Module Pin, ESP32 GPIO, Protocol, Logic Voltage Domain, Sampling Frequency, Transfer Function, and real-time live readings.
+- 💻 **ESP32 FreeRTOS C++ Firmware Viewer**: Production-ready C++ firmware displaying dual-core task affinity (Core 0: ADC polling & EMA noise filter; Core 1: MQTT serialization), `IRAM_ATTR` interrupt handler, and one-click code copy.
+
+### 2. Fluke 87V Digital Multimeter (DMM) Tool
+Click **Multimeter Tool** to probe 8 physical test points:
+- `TP1: 5V_BUS` (+5.02 V DC)
+- `TP2: 3V3_MCU` (+3.31 V DC)
+- `TP3: ACS712_OUT` (Analog $V_{out} = 2.50\text{V} + 0.066 \times I$)
+- `TP4: LM393_D0` (Tachometer frequency in Hz)
+- `TP5: DS18B20_DQ` (Dallas 1-Wire voltage & protocol dips)
+- `TP6: MPU6050_SDA` (I2C 3.3V Data Bus)
+- `TP7: RELAY_IN` (3.3V Normal / 0.0V Cutoff)
+- `TP8: MOTOR_24V` (+24.08 V DC Load Circuit)
+
+### 3. Academic Scenario Presets
+- 🟢 **Nominal CNC**: Baseline operation (1500 RPM, 38 Nm, 34°C, 1.2g, 15% GRU risk).
+- 🟠 **Bearing Degradation**: Tool wear & vibration surge to 3.8g (ISO 10816 Zone C).
+- 🛑 **Jammed Rotor Stall & Auto-Cutoff**: Current surges to 4.7A, triggering automatic Songle relay trip within **8.4ms**.
+- 🔥 **Thermal Crisis**: Fan failure with stator temperature reaching 45°C.
+- 📡 **Wi-Fi Dropout**: Demonstrates edge autonomy with local circular ring buffering.
+
+### 4. Printable Lab Report Generator
+Click **Lab Report** to generate an academic engineering document including:
+- Document Abstract & System Architecture
+- Complete **Bill of Materials (BOM)** with component part numbers and total prototype pricing ($28.40)
+- Edge Mathematical Equations & Calibration Parameters
+- Live Telemetry Snapshot & PyTorch GRU Risk Score
+- Print / PDF export formatting.
 
 ---
 
@@ -130,3 +179,4 @@ python simulator/verify_simulator.py
 # 6. Frozen GRU inference verification suite:
 python ml/inference/verify_inference.py
 ```
+

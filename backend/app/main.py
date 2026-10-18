@@ -28,6 +28,7 @@ from backend.app.api.assets import router as assets_router, set_asset_service_pr
 from backend.app.api.health import router as health_router
 from backend.app.api.interactions import router as interactions_router
 from backend.app.api.predictions import router as predictions_router
+from backend.app.api.simulation import router as simulation_router
 from backend.app.api.telemetry import router as telemetry_router
 from backend.app.config import get_settings
 from backend.app.database.connection import init_db
@@ -116,6 +117,7 @@ app.include_router(telemetry_router)
 app.include_router(predictions_router)
 app.include_router(alerts_router)
 app.include_router(interactions_router)
+app.include_router(simulation_router)
 
 
 # WebSocket live update endpoint

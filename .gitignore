@@ -51,8 +51,15 @@ yarn-error.log*
 
 # IDE & Editor settings
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
+*.bak
+*.tmp
+*.orig
 .DS_Store
 Thumbs.db
+.antigravity/
+.gemini/
+

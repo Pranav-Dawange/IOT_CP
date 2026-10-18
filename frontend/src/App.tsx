@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { SimulationDashboard } from './components/SimulationDashboard';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -7,8 +8,10 @@ import {
   Flame,
   Gauge,
   Layers,
+  LayoutDashboard,
   RefreshCw,
   Search,
+  Settings2,
   SlidersHorizontal,
   Thermometer,
   WifiOff,
@@ -45,6 +48,7 @@ export const App: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState<boolean>(false);
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'monitor' | 'simulation'>('simulation');
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'warning' | 'info' }>>([]);
 
   const showToast = (message: string, type: 'success' | 'warning' | 'info' = 'info') => {
@@ -373,6 +377,37 @@ export const App: React.FC = () => {
         onOpenWhatIf={() => setIsWhatIfOpen(true)}
       />
 
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-800 bg-slate-950/80">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1">
+          <button
+            onClick={() => setActiveTab('monitor')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
+              activeTab === 'monitor'
+                ? 'border-blue-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            Live Monitoring
+          </button>
+          <button
+            onClick={() => setActiveTab('simulation')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
+              activeTab === 'simulation'
+                ? 'border-cyan-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Settings2 className="w-3.5 h-3.5 text-cyan-400" />
+            Hardware Prototype Simulator
+            <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono">
+              PROTOTYPE
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Dashboard Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
         {/* API Error Notification Banner */}
@@ -416,6 +451,14 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {/* ── Simulation Tab ── */}
+        {activeTab === 'simulation' && (
+          <SimulationDashboard assets={assets} onNotification={showToast} />
+        )}
+
+        {/* ── Monitoring Tab content below ── */}
+        {activeTab === 'monitor' && (
+          <>
         {/* Key Operational Indicators Bar */}
         <StatsOverview assets={assets} alerts={alerts} />
 
@@ -502,6 +545,8 @@ export const App: React.FC = () => {
             onSelectAsset={(id) => setSelectedAssetId(id)}
           />
         </section>
+          </>
+        )}
       </main>
 
       {/* Footer */}
