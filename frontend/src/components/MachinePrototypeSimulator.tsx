@@ -1885,140 +1885,230 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
 
                 {/* SVG Vector Schematic Canvas */}
                 <div className="my-2 bg-[#03060d] rounded-xl border border-slate-900 p-2 overflow-x-auto">
-                  <svg viewBox="0 0 760 380" className="w-full h-auto min-w-[650px] select-none">
-                    {/* Galvanic Isolation Barrier Line */}
-                    <line x1="530" y1="20" x2="530" y2="360" stroke="#f43f5e" strokeWidth="2" strokeDasharray="6 4" />
-                    <text x="535" y="35" fill="#f43f5e" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                  <svg viewBox="0 0 780 390" className="w-full h-auto min-w-[720px] select-none">
+                    {/* Galvanic Isolation Barrier Line (2.1 kV RMS) */}
+                    <line x1="510" y1="20" x2="510" y2="370" stroke="#f43f5e" strokeWidth="2" strokeDasharray="6 4" />
+                    <text x="510" y="382" textAnchor="middle" fill="#f43f5e" fontSize="8" fontWeight="bold" fontFamily="monospace">
                       GALVANIC ISOLATION BARRIER (2.1 kVRMS)
                     </text>
 
                     {/* Low-Voltage Domain Label */}
-                    <rect x="20" y="25" width="220" height="20" rx="3" fill="#0f172a" stroke="#1e293b" />
-                    <text x="30" y="38" fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                    <rect x="25" y="18" width="220" height="20" rx="3" fill="#0f172a" stroke="#1e293b" />
+                    <text x="35" y="31" fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace">
                       LOW-VOLTAGE DOMAIN (3.3V / 5V DC)
                     </text>
 
                     {/* High-Voltage Domain Label */}
-                    <rect x="545" y="25" width="200" height="20" rx="3" fill="#1e1b4b" stroke="#312e81" />
-                    <text x="555" y="38" fill="#f43f5e" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                    <rect x="535" y="18" width="220" height="20" rx="3" fill="#1e1b4b" stroke="#312e81" />
+                    <text x="545" y="31" fill="#f43f5e" fontSize="8" fontWeight="bold" fontFamily="monospace">
                       INDUSTRIAL DOMAIN (24V DC / 5A)
                     </text>
 
-                    {/* ESP32 IC Block */}
-                    <g transform="translate(180, 80)">
-                      <rect x="0" y="0" width="130" height="230" rx="4" fill="#0f172a" stroke="#38bdf8" strokeWidth="2" />
-                      <text x="65" y="25" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold" fontFamily="monospace">U1: ESP32</text>
-                      <text x="65" y="38" textAnchor="middle" fill="#94a3b8" fontSize="7" fontFamily="monospace">Xtensa Dual-Core</text>
-
-                      {/* Pins */}
-                      {[
-                        { pin: 'GPIO21 (SDA)', y: 65, col: '#38bdf8' },
-                        { pin: 'GPIO22 (SCL)', y: 85, col: '#eab308' },
-                        { pin: 'GPIO34 (ADC)', y: 110, col: '#22c55e' },
-                        { pin: 'GPIO18 (INT)', y: 135, col: '#f97316' },
-                        { pin: 'GPIO4 (DQ)', y: 160, col: '#a855f7' },
-                        { pin: 'GPIO26 (RLY)', y: 185, col: '#f8fafc' },
-                        { pin: '3V3 / GND', y: 210, col: '#cbd5e1' },
-                      ].map(p => (
-                        <g key={p.pin}>
-                          <line x1="-15" y1={p.y} x2="0" y2={p.y} stroke={p.col} strokeWidth="1.5" />
-                          <circle cx="-15" cy={p.y} r="2" fill={p.col} />
-                          <text x="8" y={p.y + 3} fill="#cbd5e1" fontSize="7" fontFamily="monospace">{p.pin}</text>
-                        </g>
-                      ))}
-                    </g>
-
                     {/* Sensor Blocks Left */}
-                    {/* 1. MPU-6050 & OLED I2C Bus */}
-                    <g transform="translate(30, 80)">
-                      <rect x="0" y="0" width="100" height="50" rx="3" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.2" />
-                      <text x="50" y="20" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U2: MPU-6050</text>
-                      <text x="50" y="32" textAnchor="middle" fill="#38bdf8" fontSize="7" fontFamily="monospace">Addr: 0x68 (I2C)</text>
-                      <line x1="100" y1="25" x2="165" y2="25" stroke="#38bdf8" strokeWidth="1.5" />
-                      <line x1="165" y1="25" x2="165" y2="145" stroke="#38bdf8" strokeWidth="1.5" />
-                      <line x1="165" y1="145" x2="180" y2="145" stroke="#38bdf8" strokeWidth="1.5" />
+                    {/* 1. MPU-6050 Accelerometer / IMU (I2C) */}
+                    <g transform="translate(25, 60)">
+                      <rect x="0" y="0" width="115" height="56" rx="4" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.2" />
+                      <text x="57" y="18" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U2: MPU-6050</text>
+                      <text x="57" y="29" textAnchor="middle" fill="#38bdf8" fontSize="7" fontFamily="monospace">Addr: 0x68 (I2C)</text>
+                      <text x="110" y="42" textAnchor="end" fill="#38bdf8" fontSize="6.5" fontFamily="monospace">SDA</text>
+                      <circle cx="115" cy="39" r="2.5" fill="#38bdf8" />
+                      <text x="110" y="52" textAnchor="end" fill="#eab308" fontSize="6.5" fontFamily="monospace">SCL</text>
+                      <circle cx="115" cy="49" r="2.5" fill="#eab308" />
                     </g>
 
                     {/* 2. ACS712 Current Transducer Block */}
-                    <g transform="translate(30, 150)">
-                      <rect x="0" y="0" width="100" height="60" rx="3" fill="#064e3b" stroke="#22c55e" strokeWidth="1.2" />
-                      <text x="50" y="20" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U3: ACS712</text>
-                      <text x="50" y="32" textAnchor="middle" fill="#86efac" fontSize="7" fontFamily="monospace">±5A Hall Sensor</text>
-                      {/* VOUT Wire to ESP32 */}
-                      <line x1="100" y1="35" x2="180" y2="190" stroke="#22c55e" strokeWidth="1.5" />
+                    <g transform="translate(25, 130)">
+                      <rect x="0" y="0" width="115" height="50" rx="4" fill="#064e3b" stroke="#22c55e" strokeWidth="1.2" />
+                      <text x="57" y="19" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U3: ACS712</text>
+                      <text x="57" y="31" textAnchor="middle" fill="#86efac" fontSize="7" fontFamily="monospace">±5A Hall Sensor</text>
+                      <text x="110" y="44" textAnchor="end" fill="#22c55e" fontSize="6.5" fontFamily="monospace">OUT</text>
+                      <circle cx="115" cy="41" r="2.5" fill="#22c55e" />
                     </g>
 
                     {/* 3. LM393 Tachometer Block */}
-                    <g transform="translate(30, 230)">
-                      <rect x="0" y="0" width="100" height="50" rx="3" fill="#431407" stroke="#f97316" strokeWidth="1.2" />
-                      <text x="50" y="20" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U4: LM393</text>
-                      <text x="50" y="32" textAnchor="middle" fill="#fdba74" fontSize="7" fontFamily="monospace">Optical Comparator</text>
-                      <line x1="100" y1="25" x2="180" y2="215" stroke="#f97316" strokeWidth="1.5" />
+                    <g transform="translate(25, 195)">
+                      <rect x="0" y="0" width="115" height="50" rx="4" fill="#431407" stroke="#f97316" strokeWidth="1.2" />
+                      <text x="57" y="19" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U4: LM393</text>
+                      <text x="57" y="31" textAnchor="middle" fill="#fdba74" fontSize="7" fontFamily="monospace">Optical Tachometer</text>
+                      <text x="110" y="44" textAnchor="end" fill="#f97316" fontSize="6.5" fontFamily="monospace">D0</text>
+                      <circle cx="115" cy="41" r="2.5" fill="#f97316" />
                     </g>
 
-                    {/* 4. DS18B20 OneWire Temp Probe with Pullup */}
-                    <g transform="translate(30, 300)">
-                      <rect x="0" y="0" width="100" height="50" rx="3" fill="#3b0764" stroke="#a855f7" strokeWidth="1.2" />
-                      <text x="50" y="20" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U5: DS18B20</text>
-                      <text x="50" y="32" textAnchor="middle" fill="#d8b4fe" fontSize="7" fontFamily="monospace">1-Wire Digital DQ</text>
-                      <line x1="100" y1="25" x2="180" y2="240" stroke="#a855f7" strokeWidth="1.5" />
+                    {/* 4. DS18B20 OneWire Temp Probe */}
+                    <g transform="translate(25, 260)">
+                      <rect x="0" y="0" width="115" height="50" rx="4" fill="#3b0764" stroke="#a855f7" strokeWidth="1.2" />
+                      <text x="57" y="19" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U5: DS18B20</text>
+                      <text x="57" y="31" textAnchor="middle" fill="#d8b4fe" fontSize="7" fontFamily="monospace">1-Wire Stator Temp</text>
+                      <text x="110" y="44" textAnchor="end" fill="#a855f7" fontSize="6.5" fontFamily="monospace">DQ</text>
+                      <circle cx="115" cy="41" r="2.5" fill="#a855f7" />
                     </g>
+
+                    {/* Pull-up Resistor for DS18B20 DQ (4.7kΩ to 3.3V) */}
+                    <g transform="translate(160, 265)">
+                      <line x1="0" y1="36" x2="0" y2="20" stroke="#a855f7" strokeWidth="1.5" />
+                      <rect x="-6" y="6" width="12" height="14" fill="#1e1b4b" stroke="#d8b4fe" strokeWidth="1" />
+                      <text x="8" y="16" fill="#d8b4fe" fontSize="6" fontFamily="monospace">4.7kΩ</text>
+                      <line x1="0" y1="6" x2="0" y2="-10" stroke="#38bdf8" strokeWidth="1.5" />
+                      <circle cx="0" cy="-10" r="2" fill="#38bdf8" />
+                      <text x="6" y="-7" fill="#38bdf8" fontSize="6" fontFamily="monospace">+3.3V</text>
+                    </g>
+
+                    {/* ESP32 IC Block */}
+                    <g transform="translate(195, 55)">
+                      <rect x="0" y="0" width="145" height="280" rx="5" fill="#0f172a" stroke="#38bdf8" strokeWidth="2" />
+                      <text x="72" y="24" textAnchor="middle" fill="#fff" fontSize="9.5" fontWeight="bold" fontFamily="monospace">U1: ESP32 DevKit</text>
+                      <text x="72" y="37" textAnchor="middle" fill="#94a3b8" fontSize="7" fontFamily="monospace">Xtensa Dual-Core 240MHz</text>
+
+                      {/* Left Side Inputs */}
+                      {[
+                        { pin: 'GPIO21 (SDA)', y: 44, col: '#38bdf8' },
+                        { pin: 'GPIO22 (SCL)', y: 54, col: '#eab308' },
+                        { pin: 'GPIO34 (ADC)', y: 116, col: '#22c55e' },
+                        { pin: 'GPIO18 (INT)', y: 181, col: '#f97316' },
+                        { pin: 'GPIO4 (DQ)', y: 246, col: '#a855f7' },
+                      ].map(p => (
+                        <g key={p.pin}>
+                          <line x1="-12" y1={p.y} x2="0" y2={p.y} stroke={p.col} strokeWidth="1.5" />
+                          <circle cx="-12" cy={p.y} r="2.5" fill={p.col} />
+                          <text x="8" y={p.y + 3} fill="#cbd5e1" fontSize="7" fontFamily="monospace">{p.pin}</text>
+                        </g>
+                      ))}
+
+                      {/* Right Side Output (Relay Trigger) */}
+                      <g>
+                        <line x1="145" y1="185" x2="157" y2="185" stroke="#f8fafc" strokeWidth="1.5" />
+                        <circle cx="157" cy="185" r="2.5" fill="#f8fafc" />
+                        <text x="137" y="188" textAnchor="end" fill="#f8fafc" fontSize="7" fontFamily="monospace">GPIO26 (RLY)</text>
+                      </g>
+
+                      {/* Ground & Power Reference stubs */}
+                      <text x="72" y="270" textAnchor="middle" fill="#64748b" fontSize="6.5" fontFamily="monospace">Common System GND</text>
+                    </g>
+
+                    {/* Direct Interconnect Wires: Sensors -> ESP32 */}
+                    {/* MPU-6050 SDA (y=99) -> ESP32 GPIO21 (y=99) */}
+                    <line x1="140" y1="99" x2="183" y2="99" stroke="#38bdf8" strokeWidth="1.5" />
+                    {/* MPU-6050 SCL (y=109) -> ESP32 GPIO22 (y=109) */}
+                    <line x1="140" y1="109" x2="183" y2="109" stroke="#eab308" strokeWidth="1.5" />
+
+                    {/* ACS712 OUT (y=171) -> ESP32 GPIO34 (y=171) */}
+                    <line x1="140" y1="171" x2="183" y2="171" stroke="#22c55e" strokeWidth="1.5" />
+
+                    {/* LM393 D0 (y=236) -> ESP32 GPIO18 (y=236) */}
+                    <line x1="140" y1="236" x2="183" y2="236" stroke="#f97316" strokeWidth="1.5" />
+
+                    {/* DS18B20 DQ (y=301) -> ESP32 GPIO4 (y=301) */}
+                    <line x1="140" y1="301" x2="183" y2="301" stroke="#a855f7" strokeWidth="1.5" />
+
+                    {/* ESP32 GPIO26 (y=240) -> Optocoupler Input */}
+                    <line x1="352" y1="240" x2="385" y2="240" stroke="#f8fafc" strokeWidth="1.5" />
 
                     {/* Optoisolator EL817 Block */}
-                    <g transform="translate(380, 200)">
-                      <rect x="0" y="0" width="90" height="80" rx="4" fill="#0f172a" stroke="#f8fafc" strokeWidth="1.5" />
-                      <text x="45" y="22" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U6: EL817</text>
-                      <text x="45" y="34" textAnchor="middle" fill="#94a3b8" fontSize="6.5" fontFamily="monospace">Optocoupler</text>
+                    <g transform="translate(385, 205)">
+                      <rect x="0" y="0" width="95" height="75" rx="4" fill="#0f172a" stroke="#f8fafc" strokeWidth="1.5" />
+                      <text x="47" y="19" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">U6: EL817</text>
+                      <text x="47" y="29" textAnchor="middle" fill="#94a3b8" fontSize="6.5" fontFamily="monospace">Optocoupler</text>
 
-                      {/* Internal LED & Phototransistor Graphic */}
-                      <circle cx="25" cy="52" r="6" fill="#ef4444" opacity="0.6" />
-                      <line x1="40" y1="48" x2="52" y2="48" stroke="#facc15" strokeDasharray="2 1" />
-                      <line x1="40" y1="56" x2="52" y2="56" stroke="#facc15" strokeDasharray="2 1" />
-                      <circle cx="65" cy="52" r="6" fill="#38bdf8" opacity="0.6" />
+                      {/* Pin Terminals */}
+                      <circle cx="0" cy="35" r="2.5" fill="#f8fafc" />
+                      <text x="6" y="38" fill="#f8fafc" fontSize="6" fontFamily="monospace">1:AN</text>
 
-                      {/* Input from GPIO 26 */}
-                      <line x1="-70" y1="65" x2="0" y2="65" stroke="#f8fafc" strokeWidth="1.5" />
+                      <circle cx="0" cy="55" r="2.5" fill="#64748b" />
+                      <text x="6" y="58" fill="#64748b" fontSize="6" fontFamily="monospace">2:CA</text>
+                      <line x1="0" y1="55" x2="-15" y2="55" stroke="#64748b" strokeWidth="1.2" />
+                      <line x1="-15" y1="55" x2="-15" y2="65" stroke="#64748b" strokeWidth="1.2" />
+                      <line x1="-20" y1="65" x2="-10" y2="65" stroke="#64748b" strokeWidth="1.2" />
+
+                      {/* Optical Path Graphic */}
+                      <circle cx="28" cy="45" r="5" fill="#ef4444" opacity="0.8" />
+                      <path d="M 40 40 L 52 40 M 40 48 L 52 48" stroke="#facc15" strokeDasharray="2 1" />
+                      <circle cx="68" cy="45" r="5" fill="#38bdf8" opacity="0.8" />
+
+                      <circle cx="95" cy="35" r="2.5" fill="#38bdf8" />
+                      <text x="89" y="38" textAnchor="end" fill="#38bdf8" fontSize="6" fontFamily="monospace">4:COL</text>
+
+                      <circle cx="95" cy="55" r="2.5" fill="#38bdf8" />
+                      <text x="89" y="58" textAnchor="end" fill="#38bdf8" fontSize="6" fontFamily="monospace">3:EM</text>
                     </g>
 
-                    {/* Relay Driver Transistor Q1 & Flyback Diode D1 */}
-                    <g transform="translate(560, 160)">
-                      {/* Songle SRD-05VDC Box */}
-                      <rect x="0" y="0" width="90" height="90" rx="4" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
-                      <text x="45" y="24" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">K1: SONGLE</text>
-                      <text x="45" y="36" textAnchor="middle" fill="#e0f2fe" fontSize="6.5" fontFamily="monospace">SRD-05VDC</text>
-                      <text x="45" y="48" textAnchor="middle" fill="#bae6fd" fontSize="6" fontFamily="monospace">10A / 250VAC</text>
+                    {/* Optocoupler -> Relay Driver Wire (Crosses Isolation Barrier at x=510) */}
+                    <line x1="480" y1="240" x2="550" y2="240" stroke="#38bdf8" strokeWidth="1.5" />
+                    <line x1="480" y1="260" x2="550" y2="260" stroke="#64748b" strokeWidth="1.2" />
 
-                      {/* Mechanical Switch Graphic */}
-                      <circle cx="20" cy="68" r="3" fill="#facc15" />
-                      <circle cx="70" cy="68" r="3" fill="#facc15" />
+                    {/* Relay Driver Transistor Q1 & Songle Relay K1 */}
+                    <g transform="translate(550, 150)">
+                      {/* Songle SRD-05VDC Box */}
+                      <rect x="0" y="0" width="100" height="120" rx="4" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
+                      <text x="50" y="20" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold" fontFamily="monospace">K1: SONGLE</text>
+                      <text x="50" y="32" textAnchor="middle" fill="#e0f2fe" fontSize="6.5" fontFamily="monospace">SRD-05VDC / Coil</text>
+                      <text x="50" y="44" textAnchor="middle" fill="#bae6fd" fontSize="6" fontFamily="monospace">10A / 250VAC Contact</text>
+
+                      {/* Coil Terminals Left */}
+                      <circle cx="0" cy="90" r="2.5" fill="#38bdf8" />
+                      <text x="8" y="93" fill="#bae6fd" fontSize="6" fontFamily="monospace">COIL+</text>
+                      <circle cx="0" cy="110" r="2.5" fill="#64748b" />
+                      <text x="8" y="113" fill="#94a3b8" fontSize="6" fontFamily="monospace">COIL-</text>
+
+                      {/* Flyback Diode D1 across coil */}
+                      <line x1="25" y1="90" x2="25" y2="110" stroke="#facc15" strokeWidth="1.2" />
+                      <polygon points="22,102 28,102 25,96" fill="#facc15" />
+                      <line x1="22" y1="96" x2="28" y2="96" stroke="#facc15" strokeWidth="1.2" />
+                      <text x="31" y="105" fill="#facc15" fontSize="5.5" fontFamily="monospace">1N4007</text>
+
+                      {/* High Voltage Switch Contact (COM -> NO) */}
+                      <circle cx="20" cy="62" r="3" fill="#facc15" />
+                      <text x="18" y="54" textAnchor="middle" fill="#facc15" fontSize="6" fontFamily="monospace">COM</text>
+
+                      <circle cx="80" cy="62" r="3" fill="#facc15" />
+                      <text x="80" y="54" textAnchor="middle" fill="#facc15" fontSize="6" fontFamily="monospace">NO</text>
+
+                      {/* Moving Switch Arm */}
                       <line
                         x1="20"
-                        y1="68"
-                        x2="65"
-                        y2={relayTripped ? "52" : "68"}
+                        y1="62"
+                        x2="76"
+                        y2={relayTripped ? "48" : "62"}
                         stroke={relayTripped ? "#ef4444" : "#22c55e"}
                         strokeWidth="2.5"
                         strokeLinecap="round"
                       />
-                      <text x="45" y="82" textAnchor="middle" fill={relayTripped ? "#ef4444" : "#86efac"} fontSize="6.5" fontWeight="bold" fontFamily="monospace">
+
+                      <text x="50" y="77" textAnchor="middle" fill={relayTripped ? "#ef4444" : "#86efac"} fontSize="6.5" fontWeight="bold" fontFamily="monospace">
                         {relayTripped ? "OPEN (TRIPPED)" : "CLOSED (ARMED)"}
                       </text>
                     </g>
 
-                    {/* RS-775 24V Motor & Load Circuit */}
-                    <g transform="translate(680, 175)">
-                      <circle cx="30" cy="30" r="28" fill="#1e293b" stroke="#dc2626" strokeWidth="2" />
-                      <text x="30" y="28" textAnchor="middle" fill="#fff" fontSize="12" fontWeight="bold" fontFamily="monospace">M1</text>
-                      <text x="30" y="42" textAnchor="middle" fill="#94a3b8" fontSize="7" fontFamily="monospace">24V DC</text>
+                    {/* 24V Supply Rail (+24V DC Bus) */}
+                    <line x1="535" y1="55" x2="750" y2="55" stroke="#dc2626" strokeWidth="2.5" />
+                    <text x="755" y="58" fill="#dc2626" fontSize="8" fontWeight="bold" fontFamily="monospace">+24V DC</text>
 
-                      {/* Power loop wire from relay contact */}
-                      <line x1="-30" y1="30" x2="2" y2="30" stroke="#dc2626" strokeWidth="2.5" />
+                    {/* Wire: +24V Bus down to Relay COM (at x=570, y=212) */}
+                    <line x1="570" y1="55" x2="570" y2="212" stroke="#dc2626" strokeWidth="2" />
+                    <circle cx="570" cy="55" r="2" fill="#dc2626" />
+
+                    {/* Wire: Relay NO Contact (at x=630, y=212) -> Motor M1 (+) terminal */}
+                    <line x1="630" y1="212" x2="685" y2="212" stroke={relayTripped ? "#ef4444" : "#dc2626"} strokeWidth="2" />
+
+                    {/* RS-775 24V DC Spindle Motor Block */}
+                    <g transform="translate(685, 185)">
+                      <circle cx="30" cy="27" r="27" fill="#1e293b" stroke="#dc2626" strokeWidth="2" />
+                      <text x="30" y="24" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="bold" fontFamily="monospace">M1</text>
+                      <text x="30" y="36" textAnchor="middle" fill="#94a3b8" fontSize="6.5" fontFamily="monospace">RS-775 Spindle</text>
+                      <text x="30" y="46" textAnchor="middle" fill="#f87171" fontSize="6" fontFamily="monospace">24V DC / 5A</text>
+                      <circle cx="3" cy="27" r="2.5" fill="#dc2626" />
+                      <circle cx="57" cy="27" r="2.5" fill="#64748b" />
                     </g>
 
-                    {/* 24V Supply Rail Top */}
-                    <line x1="550" y1="70" x2="740" y2="70" stroke="#dc2626" strokeWidth="2.5" />
-                    <text x="745" y="74" fill="#dc2626" fontSize="9" fontWeight="bold" fontFamily="monospace">+24V DC</text>
-                    <line x1="560" y1="70" x2="560" y2="160" stroke="#dc2626" strokeWidth="2" />
+                    {/* Motor Ground Return Loop (0V Return Rail) */}
+                    <line x1="742" y1="212" x2="760" y2="212" stroke="#64748b" strokeWidth="2" />
+                    <line x1="760" y1="212" x2="760" y2="330" stroke="#64748b" strokeWidth="2" />
+                    <line x1="760" y1="330" x2="535" y2="330" stroke="#64748b" strokeWidth="2" />
+                    <text x="755" y="342" textAnchor="end" fill="#64748b" fontSize="7.5" fontWeight="bold" fontFamily="monospace">24V RETURN / DC GND</text>
+                    {/* Ground Symbol */}
+                    <line x1="535" y1="330" x2="535" y2="340" stroke="#64748b" strokeWidth="1.5" />
+                    <line x1="528" y1="340" x2="542" y2="340" stroke="#64748b" strokeWidth="2" />
+                    <line x1="531" y1="343" x2="539" y2="343" stroke="#64748b" strokeWidth="1.5" />
+                    <line x1="533" y1="346" x2="537" y2="346" stroke="#64748b" strokeWidth="1" />
                   </svg>
                 </div>
 
