@@ -57,36 +57,129 @@ Industrial Monitoring Platform (frontend/)
 
 ---
 
-## Quickstart: Running in Git Bash (Step-by-Step)
+## Getting Started & Execution Modes
 
-To run the complete system manually from Git Bash, open separate terminal windows for each component:
+You can run the system using either **Docker Compose (Recommended - all 6 services orchestrated together)** or **Manually via Git Bash / Terminal (running each component step-by-step)**.
 
-### Terminal 1: Eclipse Mosquitto Broker
+---
+
+### Option A: Docker Compose Quickstart (Recommended)
+
+Docker Compose starts all 6 components (Mosquitto MQTT Broker, TimescaleDB, FastAPI Backend, Edge Stream Processor, 20-Asset Simulator, and Frontend UI) in containerized isolation with zero manual networking configuration.
+
+#### Prerequisites
+- **Docker Desktop** or **OrbStack** installed and running on your system.
+
+#### 1. Build Frontend Static Assets (for Nginx volume mount)
 ```bash
-# Start Mosquitto using the project configuration
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+#### 2. Launch the Stack
+```bash
+docker compose up --build -d
+```
+
+The stack exposes:
+- **Frontend Dashboard & 3D Digital Twin:** [http://localhost:3000](http://localhost:3000)
+- **FastAPI REST API & Interactive Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Service Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
+- **TimescaleDB Database:** `localhost:5433` (PostgreSQL 16)
+- **Mosquitto MQTT Broker:** `localhost:1883`
+
+#### Useful Docker Management Commands
+```bash
+# View live logs across all containers
+docker compose logs -f
+
+# View live logs for a specific service (e.g. backend predictions or simulator)
+docker compose logs -f backend
+docker compose logs -f simulator
+
+# Check container health and status
+docker compose ps
+
+# Stop the entire stack
+docker compose down
+```
+
+---
+
+### Option B: Manual Host Execution (Step-by-Step)
+
+If you prefer running components directly on your host machine without Docker:
+
+#### 1. System Prerequisites
+- **Python 3.9+** and **pip**
+- **Node.js 18+** and **npm**
+- **Eclipse Mosquitto MQTT Broker:**
+  - **macOS (Homebrew):**
+    ```bash
+    brew install mosquitto
+    ```
+    *(Note: On Apple Silicon Macs, Homebrew places the server binary in `/opt/homebrew/sbin/mosquitto`)*
+  - **Linux (Ubuntu/Debian):**
+    ```bash
+    sudo apt update && sudo apt install -y mosquitto mosquitto-clients
+    ```
+  - **Windows:** Download the official installer from [mosquitto.org](https://mosquitto.org/download/).
+
+#### 2. Install Python Dependencies
+```bash
+# Create and activate a Python virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows (Git Bash): source .venv/Scripts/activate
+
+# Install all required Python dependencies
+pip install -r requirements.txt
+```
+
+#### 3. Start Each Component in a Separate Terminal Window:
+
+##### Terminal 1: Eclipse Mosquitto Broker
+```bash
+# macOS (Homebrew default location):
+/opt/homebrew/sbin/mosquitto -c mosquitto/mosquitto.conf -v
+
+# Linux / Windows (or if mosquitto is in your PATH):
 mosquitto -c mosquitto/mosquitto.conf -v
 ```
 
-### Terminal 2: FastAPI Backend Server
+##### Terminal 2: FastAPI Backend Server
+The backend supports both SQLite (zero-config, immediate setup) and PostgreSQL/TimescaleDB:
 ```bash
-# Activate Python environment (if using virtualenv)
-# Start backend on port 8000
+# Activate Python environment
+source .venv/bin/activate
+
+# Run with local SQLite database (Recommended for quick local testing without PostgreSQL):
+DATABASE_URL="sqlite:///./data/industrial_iot.db" python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+
+# Or run with PostgreSQL/TimescaleDB (if PostgreSQL is running on port 5432):
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### Terminal 3: Edge Processing Layer
+##### Terminal 3: Edge Processing Layer
 ```bash
+# Activate Python environment
+source .venv/bin/activate
+
 # Start Edge Processor connecting to local Mosquitto broker
 python edge/main.py --broker-host localhost --broker-port 1883
 ```
 
-### Terminal 4: 20-Asset Industrial Simulator
+##### Terminal 4: 20-Asset Industrial Simulator
 ```bash
-# Start simulator emitting continuous telemetry (0.5s tick rate)
-python simulator/main.py --broker-host localhost --broker-port 1883 --interval 0.5 --loop
+# Activate Python environment
+source .venv/bin/activate
+
+# Start simulator emitting continuous telemetry for all 20 assets (500ms tick rate)
+python simulator/main.py --all --broker-host localhost --broker-port 1883 --interval-ms 500 --loop
 ```
 
-### Terminal 5: Real-Time Frontend Dashboard
+##### Terminal 5: Real-Time Frontend Dashboard
 ```bash
 # Navigate to frontend directory, install dependencies, and launch Vite dev server
 cd frontend
@@ -98,22 +191,6 @@ Open your browser to:
 - **Dashboard UI:** [http://localhost:3000](http://localhost:3000)
 - **FastAPI Interactive Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Service Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
-
----
-
-## Docker Compose Quickstart
-
-Alternatively, run the entire containerized stack with Docker Compose:
-
-```bash
-docker compose up --build -d
-```
-
-The stack exposes:
-- **Frontend Dashboard & Hardware Simulator:** [http://localhost:3000](http://localhost:3000)
-- **FastAPI REST API & Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **TimescaleDB Database:** `localhost:5433` (PostgreSQL 16)
-- **Mosquitto MQTT Broker:** `localhost:1883`
 
 ---
 
