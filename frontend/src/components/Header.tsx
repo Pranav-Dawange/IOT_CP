@@ -19,11 +19,12 @@ import {
   Waves,
   Wifi,
   WifiOff,
+  Workflow,
 } from 'lucide-react';
 import { ConnectionState } from '../api/websocket';
 import { SystemHealth } from '../types';
 
-export type PageRoute = 'fleet' | 'twin' | 'wiring' | 'vibration' | 'simulator';
+export type PageRoute = 'fleet' | 'twin' | 'wiring' | 'vibration' | 'simulator' | 'flow';
 export type PersonaMode = 'operator' | 'engineer';
 
 interface HeaderProps {
@@ -83,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'wiring', label: 'Wiring Guide', icon: <Layers className="w-4 h-4 text-emerald-400" /> },
     { id: 'vibration', label: 'Signal Health', icon: <Waves className="w-4 h-4 text-purple-400" /> },
     { id: 'simulator', label: 'Load Test', icon: <Flame className="w-4 h-4 text-amber-400" /> },
+    { id: 'flow', label: 'How It Works', icon: <Workflow className="w-4 h-4 text-emerald-400" /> },
   ];
 
   const [showOverflow, setShowOverflow] = useState(false);

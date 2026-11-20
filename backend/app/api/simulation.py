@@ -35,7 +35,7 @@ registry = DeviceRegistry()
 class ScenarioRequest(BaseModel):
     scenario_id: str = Field(
         ...,
-        description="Scenario identifier: 'normal', 'pre_failure_ramp', 'thermal_crisis', 'cascade_failure', 'network_storm'",
+        description="Scenario identifier: 'normal', 'pre_failure_ramp', 'thermal_crisis', 'cascade_failure', 'network_storm', 'spindle_stall'",
     )
     target_lines: Optional[List[str]] = Field(
         None,
@@ -63,6 +63,10 @@ SCENARIO_FAULT_MAP: Dict[str, Dict[str, Any]] = {
     "network_storm": {
         "description": "Radio dropout storm across Line D — sequence gap detection test",
         "faults": [{"type": "NETWORK_DROPOUT", "lines": ["lineD"]}],
+    },
+    "spindle_stall": {
+        "description": "Spindle stall & power overload across Line B — severe RPM drop and high torque",
+        "faults": [{"type": "SPINDLE_STALL", "lines": ["lineB"]}],
     },
 }
 
@@ -183,6 +187,7 @@ async def deploy_scenario(
                         "TORQUE_SPIKE": {"torque": 78.5, "rotational_speed": 1240.0, "flag": "TORQUE_OUT_OF_BOUNDS"},
                         "THERMAL_OVERHEAT": {"air_temperature": 304.8, "process_temperature": 315.6, "flag": "PROCESS_TEMP_OUT_OF_BOUNDS"},
                         "TOOL_WEAR_SURGE": {"tool_wear": 235.0, "torque": 62.0, "flag": "TOOL_WEAR_LIMIT_EXCEEDED"},
+                        "SPINDLE_STALL": {"rotational_speed": 1180.0, "torque": 74.0, "tool_wear": 185.0, "flag": "SPINDLE_STALL_RISK"},
                         "NETWORK_DROPOUT": {"flag": "CONNECTION_DROPOUT"},
                     }.get(fault_type, {})
 

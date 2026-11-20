@@ -18,6 +18,7 @@ import { Header, PageRoute } from './components/Header';
 import { InteractiveBreadboardWiring } from './components/InteractiveBreadboardWiring';
 import { MachinePrototypeSimulator } from './components/MachinePrototypeSimulator';
 import { SimulationDashboard } from './components/SimulationDashboard';
+import { SystemOrchestrationFlow } from './components/SystemOrchestrationFlow';
 import { VibrationSpectrumAnalyzer } from './components/VibrationSpectrumAnalyzer';
 import { WhatIfSandboxModal } from './components/WhatIfSandboxModal';
 import { Asset, EdgeAlert, LiveEvent, Prediction, SystemHealth, TelemetryRecord, WorkOrder } from './types';
@@ -41,7 +42,7 @@ export const App: React.FC = () => {
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<PageRoute>(() => {
     const hash = window.location.hash.replace('#', '') as PageRoute;
-    return ['fleet', 'twin', 'wiring', 'vibration', 'simulator'].includes(hash) ? hash : 'fleet';
+    return ['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash) ? hash : 'fleet';
   });
   const [personaMode, setPersonaMode] = useState<'operator' | 'engineer'>('operator');
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'warning' | 'info' }>>([]);
@@ -552,6 +553,15 @@ export const App: React.FC = () => {
           <ErrorBoundary fallbackTitle="Load Test Simulator Unavailable">
             <div key={pageKey} className="w-full animate-page-in">
               <SimulationDashboard assets={assets} onNotification={showToast} defaultViewMode="fleet" />
+            </div>
+          </ErrorBoundary>
+        )}
+
+        {/* ── Page 6: System Orchestration Flow (How It Works) ── */}
+        {currentPage === 'flow' && (
+          <ErrorBoundary fallbackTitle="Orchestration Flow Unavailable">
+            <div key={pageKey} className="w-full animate-page-in">
+              <SystemOrchestrationFlow assets={assets} selectedAsset={selectedAsset} />
             </div>
           </ErrorBoundary>
         )}

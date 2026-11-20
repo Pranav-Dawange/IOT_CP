@@ -56,7 +56,7 @@ class AssetActionRequest(BaseModel):
     notes: Optional[str] = Field(None, description="Operator notes or work order details")
     fault_type: Optional[str] = Field(
         None,
-        description="Type of fault: TORQUE_SPIKE, THERMAL_OVERHEAT, TOOL_WEAR_SURGE, NETWORK_DROPOUT, SEQUENCE_GAP",
+        description="Type of fault: TORQUE_SPIKE, THERMAL_OVERHEAT, TOOL_WEAR_SURGE, SPINDLE_STALL, NETWORK_DROPOUT, SEQUENCE_GAP",
     )
 
 
@@ -321,6 +321,11 @@ async def execute_asset_action(
             base_wear = 235.0
             base_torque = 62.0
             anomaly_flags.append("TOOL_WEAR_LIMIT_EXCEEDED")
+        elif fault == "SPINDLE_STALL":
+            base_speed = 1180.0
+            base_torque = 74.0
+            base_wear = 185.0
+            anomaly_flags.append("SPINDLE_STALL_RISK")
         elif fault == "SEQUENCE_GAP":
             anomaly_flags.append("SEQUENCE_GAP_DETECTED")
 

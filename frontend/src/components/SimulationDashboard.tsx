@@ -119,6 +119,17 @@ const SCENARIOS: ScenarioPreset[] = [
       { type: 'NETWORK_DROPOUT', label: 'Radio Dropout', lines: ['lineD'] },
     ],
   },
+  {
+    id: 'spindle_stall',
+    name: 'Spindle Stall',
+    badge: 'Power & Stall',
+    description: 'Simulates tool jamming across Line B — severe RPM drop (1180 rpm) and high torque (74 Nm), testing Power Failure (PWF) & Overstrain limits.',
+    color: 'border-orange-600/50 bg-orange-950/20 hover:border-orange-500',
+    icon: <Zap className="w-4 h-4 text-orange-400" />,
+    faults: [
+      { type: 'SPINDLE_STALL', label: 'Spindle Stall Overload', lines: ['lineB'] },
+    ],
+  },
 ];
 
 // ─── Line Badge ───────────────────────────────────────────────────────────────
@@ -169,6 +180,7 @@ const DeviceCard: React.FC<{
     { type: 'TORQUE_SPIKE', label: 'Torque Spike', icon: <Zap className="w-3 h-3" /> },
     { type: 'THERMAL_OVERHEAT', label: 'Overheat', icon: <Flame className="w-3 h-3" /> },
     { type: 'TOOL_WEAR_SURGE', label: 'Wear Surge', icon: <Wrench className="w-3 h-3" /> },
+    { type: 'SPINDLE_STALL', label: 'Spindle Stall', icon: <Cpu className="w-3 h-3 text-orange-400" /> },
     { type: 'NETWORK_DROPOUT', label: 'Dropout', icon: <Radio className="w-3 h-3" /> },
   ];
 
@@ -531,7 +543,7 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           {SCENARIOS.map((scenario) => (
             <button
               key={scenario.id}
