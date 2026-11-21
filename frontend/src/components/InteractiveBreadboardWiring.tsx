@@ -94,6 +94,7 @@ export const BOARD_PINS: PinDefinition[] = [
   { id: 'esp32_gnd1', name: 'ESP32 GND', label: 'GND', x: 260, y: 130, type: 'GND', voltage: '0V', component: 'ESP32' },
   { id: 'esp32_gpio34', name: 'ESP32 GPIO 34 (ADC1_CH6)', label: 'IO34', x: 260, y: 170, type: 'ADC', voltage: '3.3V', component: 'ESP32' },
   { id: 'esp32_gpio4', name: 'ESP32 GPIO 4 (OneWire DQ)', label: 'IO4', x: 260, y: 230, type: 'ONEWIRE', voltage: '3.3V', component: 'ESP32' },
+  { id: 'esp32_gpio19', name: 'ESP32 GPIO 19 (DHT22 Data)', label: 'IO19', x: 260, y: 250, type: 'ONEWIRE', voltage: '3.3V', component: 'ESP32' },
 
   // ESP32 Right Header
   { id: 'esp32_vin', name: 'ESP32 VIN (5V)', label: 'VIN', x: 330, y: 110, type: 'POWER', voltage: '5V', component: 'ESP32' },
@@ -130,6 +131,11 @@ export const BOARD_PINS: PinDefinition[] = [
   { id: 'ds_gnd', name: 'DS18B20 GND', label: 'GND', x: 620, y: 175, type: 'GND', voltage: '0V', component: 'DS18B20' },
   { id: 'ds_dq', name: 'DS18B20 DQ (1-Wire Data)', label: 'DQ', x: 620, y: 190, type: 'ONEWIRE', voltage: '3.3V', component: 'DS18B20' },
   { id: 'pullup_res', name: '4.7kΩ Pull-up Resistor', label: '4.7kΩ', x: 420, y: 230, type: 'ONEWIRE', voltage: '3.3V', component: 'Resistor' },
+
+  // Transducer 5: DHT22 / AM2302 Ambient Air Sensor
+  { id: 'dht_vcc', name: 'DHT22 VCC (3.3V)', label: 'VCC', x: 360, y: 140, type: 'POWER', voltage: '3.3V', component: 'DHT22' },
+  { id: 'dht_gnd', name: 'DHT22 GND', label: 'GND', x: 360, y: 160, type: 'GND', voltage: '0V', component: 'DHT22' },
+  { id: 'dht_data', name: 'DHT22 DATA (Single-Bus)', label: 'DAT', x: 360, y: 180, type: 'ONEWIRE', voltage: '3.3V', component: 'DHT22' },
 
   // Actuator: Songle Relay & 24V Motor Circuit
   { id: 'relay_vcc', name: 'Songle Relay VCC (5V)', label: 'VCC', x: 410, y: 290, type: 'POWER', voltage: '5V', component: 'Songle Relay' },
@@ -171,6 +177,10 @@ export const NOMINAL_WIRES: UserWire[] = [
   { id: 'w20', fromPinId: 'rail_24v', toPinId: 'relay_com', color: '#dc2626' },
   { id: 'w21', fromPinId: 'relay_no', toPinId: 'motor_pos', color: '#dc2626' },
   { id: 'w22', fromPinId: 'motor_neg', toPinId: 'rail_gnd', color: '#0f172a' },
+  // 7. DHT22 Ambient Air Temperature Sensor
+  { id: 'w23', fromPinId: 'rail_3v3', toPinId: 'dht_vcc', color: '#f97316' },
+  { id: 'w24', fromPinId: 'rail_gnd_bot', toPinId: 'dht_gnd', color: '#0f172a' },
+  { id: 'w25', fromPinId: 'dht_data', toPinId: 'esp32_gpio19', color: '#06b6d4' },
 ];
 
 export interface InteractiveBreadboardWiringProps {
@@ -788,6 +798,14 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
           {/* DS18B20 Stainless Probe Silhouette */}
           <rect x="600" y="145" width="90" height="65" rx="4" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
           <text x="645" y="180" fill="#e2e8f0" fontSize="8" fontWeight="bold" textAnchor="middle">DS18B20 1-W</text>
+
+          {/* DHT22 Ambient Air Sensor Silhouette */}
+          <rect x="345" y="125" width="55" height="70" rx="4" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.2" />
+          <line x1="353" y1="138" x2="392" y2="138" stroke="#94a3b8" strokeWidth="1.5" />
+          <line x1="353" y1="144" x2="392" y2="144" stroke="#94a3b8" strokeWidth="1.5" />
+          <line x1="353" y1="150" x2="392" y2="150" stroke="#94a3b8" strokeWidth="1.5" />
+          <text x="372" y="172" fill="#0f172a" fontSize="7.5" fontWeight="bold" textAnchor="middle">DHT22</text>
+          <text x="372" y="184" fill="#475569" fontSize="6" fontFamily="monospace" textAnchor="middle">Air Temp</text>
 
           {/* Songle Relay Silhouette */}
           <rect x="390" y="275" width="115" height="75" rx="5" fill="#1e3a8a" stroke="#2563eb" strokeWidth="1.5" />
