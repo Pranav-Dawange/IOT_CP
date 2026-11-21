@@ -432,10 +432,10 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
       return {
         status: 'CRITICAL_HAZARD',
         title: critRule.id === 'erc_short_circuit'
-          ? '💥 Direct Short Circuit to Ground!'
+          ? 'Direct Short Circuit to Ground'
           : critRule.id === 'erc_hv_isolation'
-          ? '🔥 Catastrophic 24V Overvoltage Destruction!'
-          : `💥 Critical Rule Failure: ${critRule.name}`,
+          ? 'Catastrophic 24V Overvoltage Condition'
+          : `Critical Rule Failure: ${critRule.name}`,
         description: critRule.details,
         affectedPins: critRule.affectedPins || [],
         vivaNote: critRule.vivaNote,
@@ -448,7 +448,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
       const warnRule = ercRules.find(r => r.status === 'WARN')!;
       return {
         status: 'WARNING',
-        title: `⚠ Electrical Rule Warning: ${warnRule.name}`,
+        title: `Electrical Rule Warning: ${warnRule.name}`,
         description: warnRule.details,
         affectedPins: warnRule.affectedPins || [],
         vivaNote: warnRule.vivaNote,
@@ -459,7 +459,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
 
     return {
       status: 'NOMINAL',
-      title: '✓ All Electrical Rules Verified & Nominal (9/9 Checks Passed)',
+      title: 'All Electrical Rules Verified (9/9 Checks Passed)',
       description: 'Power rails (5V, 3.3V, 24V), I2C bus (0x68), ADC input (GPIO34), Dallas 1-Wire (GPIO4), and DHT22 Ambient Sensor (GPIO19) are correctly mapped without short circuits or overvoltage risks.',
       affectedPins: [],
       vivaNote: 'Galvanic isolation between the 24V motor circuit and the 3.3V digital logic is strictly maintained via the optocoupler barrier.',
@@ -697,7 +697,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
           </div>
           <p className="text-slate-300 text-[11px] leading-relaxed">{diagnosis.description}</p>
           <div className="text-[10px] text-slate-400 bg-black/40 p-2 rounded-lg border border-slate-800/80 mt-1">
-            <strong className="text-white">Academic Defense / Viva Note: </strong>
+            <strong className="text-white">Circuit Theory & Safety Specification: </strong>
             <span>{diagnosis.vivaNote}</span>
           </div>
         </div>
@@ -735,11 +735,11 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
         <div className="flex flex-wrap items-center gap-1 text-[11px]">
           <span className="text-slate-500 font-bold mr-1">Presets:</span>
           {[
-            { id: 'nominal', label: '✓ Nominal' },
-            { id: 'short_circuit', label: '💥 Short 5V/GND' },
-            { id: 'i2c_swap', label: '🔄 Invert I2C' },
-            { id: 'overvoltage', label: '🔥 24V on GPIO' },
-            { id: 'missing_pullup', label: '❓ No Pullup' },
+            { id: 'nominal', label: 'Nominal Wiring' },
+            { id: 'short_circuit', label: '5V-GND Short' },
+            { id: 'i2c_swap', label: 'Invert I2C' },
+            { id: 'overvoltage', label: '24V Fault' },
+            { id: 'missing_pullup', label: 'No Pullup' },
             { id: 'empty', label: 'Clear' },
           ].map(p => (
             <button
@@ -904,7 +904,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                   <circle cx="0" cy="0" r="14" fill="#f43f5e" opacity="0.3" className="animate-ping" />
                   <circle cx="0" cy="0" r="7" fill="#fbbf24" filter="url(#sparkGlow)" />
                   <text x="12" y="-6" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">
-                    {diagnosis.shortCircuit ? '⚡ SHORT!' : '🔥 24V BURNOUT!'}
+                    {diagnosis.shortCircuit ? 'SHORT CIRCUIT' : '24V OVERVOLTAGE'}
                   </text>
                 </g>
               );
@@ -921,7 +921,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                   <circle cx="0" cy="0" r="12" fill="#10b981" opacity="0.35" className="animate-ping" />
                   <circle cx="0" cy="0" r="4.5" fill="#34d399" filter="url(#sparkGlow)" />
                   <text x="8" y="-5" fill="#34d399" fontSize="7.5" fontWeight="bold" fontFamily="monospace">
-                    ✓ PASS
+                    PASS
                   </text>
                 </g>
               );
@@ -1114,7 +1114,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                     </p>
 
                     <div className="mt-2 text-[10px] text-slate-400 bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-                      <strong className="text-cyan-400">Viva Defense Note: </strong>
+                      <strong className="text-cyan-400">Circuit Engineering Note: </strong>
                       <span>{rule.vivaNote}</span>
                     </div>
                   </div>

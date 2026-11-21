@@ -1,31 +1,26 @@
 /**
- * MachinePrototypeSimulator.tsx  —  ULTRA-ENHANCED v5.0 ACADEMIC & INDUSTRIAL EDITION
+ * MachinePrototypeSimulator.tsx — Industrial IoT Machine Prototype Simulator
  *
- * Designed for academic defence, engineering vivas, and industrial IoT demonstrations:
+ * Course Project: Industrial Asset Condition Monitoring & Predictive Safety Cutoff
  *
- * 1. FOUR WORKBENCH VIEWS:
- *    - 🛠️ Breadboard Rig: High-fidelity Fritzing-style layout with Dupont wires, axial 4.7kΩ resistor, MB102 power supply, spinning 8-notch encoder disc, and stator clamp.
- *    - 📐 Circuit Schematic: True vector IEEE/IEC circuit diagram with component symbols, decoupling capacitors, pullups, optocoupler, relay driver transistor, flyback diode & 24V isolation boundary.
- *    - 📋 Pinout & Wiring Matrix: Academic matrix with GPIO allocations, logic domains, sampling rates, transfer functions, and live signals.
- *    - 💻 ESP32 FreeRTOS Firmware: Full syntax-highlighted C++ source code with FreeRTOS dual-core tasks, IRAM interrupt handler, EMA filter, and MQTT payload serialization.
+ * 1. WORKBENCH VIEWS:
+ *    - Breadboard Rig: Fritzing-style layout with Dupont wiring, pullup resistor, MB102 power rail, optical encoder disc, and stator clamp.
+ *    - Circuit Schematic: Vector circuit diagram with standard components, decoupling capacitors, optocoupler, relay driver, and isolation barrier.
+ *    - Pinout & Wiring Matrix: Hardware matrix with GPIO assignments, logic domains, sampling rates, and sensor transfer functions.
+ *    - ESP32 FreeRTOS Firmware: Complete C++ source code with FreeRTOS dual-core tasks, IRAM interrupt handler, EMA filter, and MQTT JSON serialization.
  *
- * 2. VIRTUAL DIGITAL MULTIMETER (FLUKE 87V STYLE):
- *    - 8 Interactive test points across the board (TP1..TP8).
- *    - DC V, AC mV ripple, frequency (Hz), and continuity modes with digital LCD readout, analog bar graph, and Min/Max capture.
+ * 2. VIRTUAL DIGITAL MULTIMETER:
+ *    - 8 Test points across power rails, ADC inputs, I2C bus, and interrupt lines.
+ *    - DC voltage, AC ripple, frequency (Hz), and continuity modes.
  *
- * 3. ACADEMIC SCENARIO PRESETS:
- *    - Nominal Baseline, Bearing Degradation (ISO 10816), Jammed Rotor Stall & Auto-Trip, Thermal Runaway, and Wi-Fi Dropout.
+ * 3. FAULT INJECTION SCENARIOS:
+ *    - Nominal Baseline, Bearing Degradation, Spindle Stall, Thermal Runaway, and Wi-Fi Dropout.
  *
- * 4. ONE-CLICK LAB REPORT GENERATOR:
- *    - Formatted academic engineering report with Bill of Materials (BOM), circuit schematics, mathematical calibration formulas, telemetry snapshot, and printable layout.
- *
- * 5. REAL-TIME INSTRUMENTATION:
+ * 4. REAL-TIME INSTRUMENTATION:
  *    - 4-Channel Virtual Logic Analyzer / Oscilloscope
  *    - ESP32 UART Serial Terminal (115200 baud)
- *    - MQTT Protocol Inspector with live JSON payload tree
- *    - Green-IoT Carbon ROI & UN SDG Metric Dashboard
- *    - Web Audio realistic motor PWM hum and mechanical relay contact click SFX
- *    - Guided 8-Slide Academic Presentation Mode
+ *    - MQTT Protocol Inspector with live JSON telemetry
+ *    - Power and Energy Monitoring
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -357,44 +352,44 @@ const TEST_POINTS: TestPoint[] = [
 // ─── PRESENTATION SLIDES ────────────────────────────────────────────────────
 const SLIDES = [
   {
-    title: '🔌 1. Industrial IoT Architecture Overview',
+    title: '1. Industrial IoT Architecture Overview',
     componentId: null,
-    body: 'This academic hardware prototype implements an end-to-end cyber-physical IoT system for CNC spindle motors. The edge node couples multi-modal transducers (Hall current, optical tachometer, 6-axis MEMS vibration, OneWire temperature) with an ESP32 microcontroller that performs local preprocessing, FreeRTOS scheduling, and MQTT streaming to a TimescaleDB / PyTorch GRU neural pipeline.',
+    body: 'This hardware prototype implements an end-to-end condition monitoring system for industrial spindle motors. The edge node couples multi-modal transducers (Hall current, optical tachometer, 6-axis MEMS vibration, OneWire and DHT22 temperature) with an ESP32 microcontroller that performs local preprocessing, FreeRTOS scheduling, and MQTT streaming to a TimescaleDB / PyTorch GRU neural pipeline.',
   },
   {
-    title: '🧠 2. ESP32 DevKit — Dual-Core Edge Gateway',
+    title: '2. ESP32 DevKit — Dual-Core Edge Gateway',
     componentId: 'esp32',
-    body: 'The ESP32 runs FreeRTOS with task affinity: Core 0 computes exponential moving average (EMA) filtration (α=0.3) on high-frequency sensor interrupts and drives the SSD1306 OLED framebuffer. Core 1 manages Wi-Fi transport, TLS handshake, and JSON payload serialization to Mosquitto MQTT broker at 1.0 Hz.',
+    body: 'The ESP32 runs FreeRTOS with task affinity: Core 0 computes exponential moving average (EMA) filtration on high-frequency sensor interrupts and drives the safety cutoff. Core 1 manages Wi-Fi transport, local WebSerial streaming, and JSON payload serialization to the MQTT broker at 1.0 Hz.',
   },
   {
-    title: '⚡ 3. ACS712 — Indirect Torque via Current Shunt',
+    title: '3. ACS712 — Indirect Torque via Current Shunt',
     componentId: 'acs712',
-    body: 'Rather than utilizing expensive and fragile rotary strain gauges, tool spindle torque τ is determined non-invasively through motor armature current I using the Hall effect: Vout = 2.5V + (66mV/A × I), scaled through planetary gear reduction (kt_spindle = η · N · kt_motor = 18.5 Nm/A where kt_motor = 0.021 Nm/A, N = 100, η = 0.88). The internal 1.2mΩ conductor provides 2.1kV galvanic isolation.',
+    body: 'Spindle torque is determined non-invasively through motor armature current using the Hall effect: Vout = 2.5V + (66mV/A * I), scaled through planetary gear reduction with no-load current offset compensation. The internal conductor provides galvanic isolation.',
   },
   {
-    title: '🔄 4. LM393 — Optical Slotted Tachometer',
+    title: '4. LM393 — Optical Slotted Tachometer',
     componentId: 'lm393',
-    body: 'An 8-slot acrylic encoder disc rotates synchronously with the spindle shaft through an infrared optocoupler beam. The LM393 comparator yields clean 3.3V square pulses to ESP32 hardware interrupt GPIO 18. Speed is derived with sub-millisecond precision: RPM = (Pulse_Count / 8) × 60.',
+    body: 'An 8-slot encoder disc rotates synchronously with the spindle shaft through an infrared optocoupler beam. The LM393 comparator yields clean 3.3V square pulses to ESP32 hardware interrupt GPIO 18. Speed is derived with sub-millisecond precision: RPM = (Pulse_Count / 8) * 60.',
   },
   {
-    title: '🌡️ 5. DS18B20 — Digital Stator Thermal Probe',
+    title: '5. DS18B20 — Digital Stator Thermal Probe',
     componentId: 'ds18b20',
-    body: 'A waterproof DS18B20 stainless capsule is thermally bonded to the motor casing. Its internal delta-sigma ADC delivers 12-bit temperature (0.0625°C/bit) over Dallas 1-Wire on GPIO 4 with a 4.7kΩ pull-up resistor. An academic rule-based trigger flags heat dissipation failure (HDF) if ΔT < 8.6 K.',
+    body: 'A waterproof DS18B20 stainless capsule is thermally bonded to the motor casing. Its internal delta-sigma ADC delivers 12-bit temperature over Dallas 1-Wire on GPIO 4 with a 4.7kΩ pull-up resistor using non-blocking asynchronous sampling.',
   },
   {
-    title: '📳 6. MPU-6050 — 6-DOF Bearing Degradation IMU',
+    title: '6. MPU-6050 — 6-DOF Bearing Degradation IMU',
     componentId: 'mpu6050',
-    body: 'The MPU-6050 MEMS accelerometer measures micro-deflections on the motor housing. Acceleration along the Z-axis is sampled at 400kHz over I2C (0x68). Root-Mean-Square (RMS) vibration tracks bearing spalling and tool wear according to the ISO 10816 mechanical vibration threshold (Alarm > 2.8g).',
+    body: 'The MPU-6050 MEMS accelerometer measures dynamic deflections on the motor housing. Acceleration is sampled over I2C (0x68). Root-Mean-Square (RMS) vibration tracks bearing wear and mechanical imbalance according to ISO 10816 standards.',
   },
   {
-    title: '🛡️ 7. Songle Relay — Automated Neural Cutoff',
+    title: '7. Songle Relay — Automated Safety Cutoff',
     componentId: 'relay',
-    body: 'When the PyTorch GRU neural model predicts failure risk > 55%, the cloud engine dispatches an emergency MQTT control packet. The ESP32 pulls GPIO 26 LOW, engaging the optoisolator and breaking the 24V motor circuit within 8.4ms to prevent catastrophic winding burnout.',
+    body: 'When the GRU model predicts failure risk > 55% or when overcurrent exceeds 4.5A, the cutoff engaged via optocoupler isolation, breaking the 24V motor circuit within 10ms to prevent winding damage.',
   },
   {
-    title: '🌱 8. Sustainability & UN SDG Alignment',
+    title: '8. Closed-Loop Fail-Safe Verification',
     componentId: null,
-    body: 'Predictive maintenance eliminates premature asset replacement, reduces energy consumption during jammed-rotor conditions by 100%, and cuts manufacturing carbon footprint. Directly aligns with UN Sustainable Development Goals: SDG 7 (Clean Energy), SDG 9 (Industry Innovation), and SDG 12 (Responsible Consumption).',
+    body: 'The closed-loop cyber-physical pipeline operates with dual fail-safe protection: a local hardware interrupt cutoff (<10ms for current surges exceeding 4.5A) and cloud neural predictive cutoff (dispatching emergency shutdown via MQTT downlink when GRU failure probability exceeds 0.55).',
   },
 ];
 
@@ -1400,11 +1395,11 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
             <Play className="w-3 h-3 text-amber-400" /> Presets:
           </span>
           {[
-            { id: 'nominal', label: '🟢 Nominal CNC', action: () => applyPresetScenario('nominal') },
-            { id: 'bearing', label: '🟠 Bearing Wear', action: () => applyPresetScenario('bearing') },
-            { id: 'jammed', label: '🛑 Jammed Stall (Trip)', action: () => applyPresetScenario('jammed') },
-            { id: 'thermal', label: '🔥 Thermal Crisis', action: () => applyPresetScenario('thermal') },
-            { id: 'wifi', label: '📡 Wi-Fi Drop', action: () => applyPresetScenario('wifi') },
+            { id: 'nominal', label: 'Nominal Baseline', action: () => applyPresetScenario('nominal') },
+            { id: 'bearing', label: 'Bearing Wear', action: () => applyPresetScenario('bearing') },
+            { id: 'jammed', label: 'Spindle Stall (Trip)', action: () => applyPresetScenario('jammed') },
+            { id: 'thermal', label: 'Thermal Runaway', action: () => applyPresetScenario('thermal') },
+            { id: 'wifi', label: 'Wi-Fi Dropout', action: () => applyPresetScenario('wifi') },
           ].map(p => (
             <button
               key={p.id}
@@ -1444,10 +1439,10 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded-lg border" style={{ background: 'rgba(15,23,42,0.8)', borderColor: telemetry.tempC > 40 ? '#ef4444' : '#065f46', color: telemetry.tempC > 40 ? '#f87171' : '#34d399' }}>
-                  🌡️ {telemetry.tempC.toFixed(1)}°C
+                  {telemetry.tempC.toFixed(1)}°C
                 </span>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${!benchPowerOn ? 'bg-slate-800 border-slate-700 text-slate-400' : relayTripped ? 'bg-rose-950 border-rose-700 text-rose-300' : 'bg-emerald-950 border-emerald-800 text-emerald-300'}`}>
-                  {!benchPowerOn ? '⏻ POWER ISOLATED' : relayTripped ? '🛑 RELAY CUTOFF' : '⚡ RAILS ACTIVE'}
+                  {!benchPowerOn ? 'POWER ISOLATED' : relayTripped ? 'RELAY CUTOFF' : 'RAILS ACTIVE'}
                 </span>
               </div>
             </div>
@@ -2435,36 +2430,36 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
               {/* Hardware Lab Fault Injection Buttons */}
               {isManualMode && (
                 <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mr-1">⚡ Inject Faults:</span>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mr-1">Fault Injections:</span>
                   <button
                     onClick={() => setLoadMode(loadMode === 'heavy' ? 'nominal' : 'heavy')}
                     className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${loadMode === 'heavy' ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'}`}
                   >
-                    {loadMode === 'heavy' ? '⚡ Heavy Load (66Nm)' : 'Heavy Torque'}
+                    {loadMode === 'heavy' ? 'Heavy Load (66Nm)' : 'Heavy Torque'}
                   </button>
                   <button
                     onClick={() => setLoadMode(loadMode === 'jammed' ? 'nominal' : 'jammed')}
                     className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${loadMode === 'jammed' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'}`}
                   >
-                    {loadMode === 'jammed' ? '🛑 Jammed Rotor (84Nm)' : 'Jammed Rotor'}
+                    {loadMode === 'jammed' ? 'Jammed Rotor (84Nm)' : 'Jammed Rotor'}
                   </button>
                   <button
                     onClick={() => setThermalMode(thermalMode === 'overheat' ? 'normal' : 'overheat')}
                     className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${thermalMode === 'overheat' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'}`}
                   >
-                    {thermalMode === 'overheat' ? '🔥 Overheat (45°C)' : 'Fan Failure'}
+                    {thermalMode === 'overheat' ? 'Overheat (45°C)' : 'Fan Failure'}
                   </button>
                   <button
                     onClick={() => setVibrationFault(!vibrationFault)}
                     className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${vibrationFault ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'}`}
                   >
-                    {vibrationFault ? '📳 Bearing Jitter (4.6g)' : 'Bearing Wear'}
+                    {vibrationFault ? 'Bearing Jitter (4.6g)' : 'Bearing Wear'}
                   </button>
                   <button
                     onClick={() => setWifiSignal(!wifiSignal)}
                     className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${!wifiSignal ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'}`}
                   >
-                    {!wifiSignal ? '📡 WiFi Dropped' : 'Drop WiFi'}
+                    {!wifiSignal ? 'WiFi Disconnected' : 'Disconnect WiFi'}
                   </button>
                 </div>
               )}
@@ -2595,7 +2590,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                       <div>
                         <div className="font-bold text-white text-[11px]">{item.label}</div>
                         <div className="text-[9px] text-slate-400">{item.sub}</div>
-                        {item.warn && <div className="text-[9px] text-amber-400 font-bold mt-0.5">⚠ Threshold Exceeded</div>}
+                        {item.warn && <div className="text-[9px] text-amber-400 font-bold mt-0.5">Threshold Exceeded</div>}
                       </div>
                     </div>
                     <div className="flex items-end gap-3">
@@ -2914,13 +2909,13 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                   <span className="text-emerald-300 font-bold">0.82 kg CO₂/kWh</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">UN SDG Target Alignment</span>
-                  <span className="text-cyan-300 font-bold">SDG 7 · SDG 9 · SDG 12</span>
+                  <span className="text-slate-400">Energy Efficiency Standard</span>
+                  <span className="text-cyan-300 font-bold">IEC 60034-30-1 (IE3 Class)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Current Safety Relay State</span>
                   <span className={relayTripped ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-                    {relayTripped ? '✅ Motor Isolated (0.0 W Standby)' : `Motor Drawing ${telemetry.powerW.toFixed(0)} W`}
+                    {relayTripped ? 'Motor Isolated (0.0 W Standby)' : `Motor Drawing ${telemetry.powerW.toFixed(0)} W`}
                   </span>
                 </div>
               </div>

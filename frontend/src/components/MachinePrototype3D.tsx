@@ -986,7 +986,7 @@ export const MachinePrototype3D: React.FC<MachinePrototype3DProps> = ({
 
       {/* Orbit Controls Hint Badge */}
       <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] font-mono text-slate-400 backdrop-blur-sm pointer-events-none">
-        🖱️ Left Click: Rotate · Right Click: Pan · Scroll: Zoom
+        Left Click: Rotate · Right Click: Pan · Scroll: Zoom
       </div>
 
       {/* Real-Time Live Status Pill */}

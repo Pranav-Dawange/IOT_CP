@@ -112,7 +112,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       setIsSupported(true);
     } else {
       setIsSupported(false);
-      appendLog('SYS', '⚠ WebSerial API is not supported in this browser. Use Chrome, Edge, or Opera.');
+      appendLog('SYS', 'WebSerial API is not supported in this browser. Use Chrome, Edge, or Opera.');
     }
   }, []);
 
@@ -212,7 +212,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
 
       setIsConnected(true);
       setIsVirtualLoopback(false);
-      appendLog('SYS', `✓ Physical Port Opened: ${portName} @ ${baudRate} baud.`);
+      appendLog('SYS', `Physical Port Opened: ${portName} @ ${baudRate} baud.`);
       appendLog('SYS', 'Querying ESP32 system information...');
 
       // Start reading stream
@@ -344,7 +344,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
           appendLog('IN', 'configsip: 0, SPIWP:0xee\nclk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00');
           appendLog('IN', '[INIT] Dual-Core FreeRTOS Initialized. Task affinity verified.');
         } else if (cleanCmd.toUpperCase() === 'TRIP_RELAY') {
-          appendLog('IN', '⚡ [SAFETY] GPIO 26 PULLED LOW -> SONGLE RELAY OPENED (24V ISOLATED)');
+          appendLog('IN', '[SAFETY] GPIO 26 PULLED LOW -> SONGLE RELAY OPENED (24V ISOLATED)');
         } else if (cleanCmd.toUpperCase() === 'GET_SYS_INFO') {
           appendLog('IN', 'Chip: ESP32-D0WD-V3 (240MHz Xtensa LX6 Dual-Core)');
           appendLog('IN', 'Flash: 4MB Winbond QSPI (DIO 80MHz)');
@@ -395,8 +395,8 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashProgress(15);
         setFlashLog(prev => [
           ...prev,
-          '✓ Chip detected: ESP32-D0WD-V3 (Dual Core 240MHz, Revision 3)',
-          '✓ Flash Manufacturer: Winbond (ID: 0x4016, 4MB DIO 80MHz)',
+          'Chip detected: ESP32-D0WD-V3 (Dual Core 240MHz, Revision 3)',
+          'Flash Manufacturer: Winbond (ID: 0x4016, 4MB DIO 80MHz)',
           'Erasing flash blocks (0x00001000 - 0x00150000)...',
         ]);
       } else if (step === 6) {
@@ -421,7 +421,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashLog(prev => [
           ...prev,
           'Verifying MD5 checksum of written binary images...',
-          'MD5 digest: 4a9f8b2c1d3e7a0f6b8c9d0e1f2a3b4c (MATCHED ✓)',
+          'MD5 digest: 4a9f8b2c1d3e7a0f6b8c9d0e1f2a3b4c (VERIFIED)',
         ]);
       } else if (step === 14) {
         clearInterval(interval);
@@ -430,9 +430,9 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashLog(prev => [
           ...prev,
           'Hard resetting via RTS pin...',
-          '✓ Firmware Flash Complete! ESP32 booting v5.0-AI4I-Edge.',
+          'Firmware Flash Complete. ESP32 booting production firmware.',
         ]);
-        appendLog('SYS', '✓ Firmware Flash Successful: ESP32 rebooted into Production Mode.');
+        appendLog('SYS', 'Firmware Flash Successful: ESP32 rebooted into Production Mode.');
       }
     }, 450);
   };
@@ -511,7 +511,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
             { id: 'terminal', label: 'UART Serial Terminal', icon: <Terminal className="w-3.5 h-3.5" /> },
             { id: 'flasher', label: 'ESP32 Firmware Flasher', icon: <Zap className="w-3.5 h-3.5" /> },
             { id: 'telemetry', label: 'Hardware Telemetry Stream', icon: <Activity className="w-3.5 h-3.5" /> },
-            { id: 'troubleshoot', label: 'USB Drivers & Viva Notes', icon: <HelpCircle className="w-3.5 h-3.5" /> },
+            { id: 'troubleshoot', label: 'USB Drivers & Interface Setup', icon: <HelpCircle className="w-3.5 h-3.5" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -861,7 +861,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3 text-xs">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
             <Wrench className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-white">ESP32 USB Serial Drivers & Viva Defense Reference</span>
+            <span className="font-bold text-white">ESP32 USB Serial Driver Configuration & Interface Reference</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">

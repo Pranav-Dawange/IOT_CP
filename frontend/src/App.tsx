@@ -318,7 +318,7 @@ export const App: React.FC = () => {
     const unsubWorkOrder = liveWs.on<WorkOrder>('work_order', (event: LiveEvent<WorkOrder>) => {
       const wo = event.data;
       if (wo) {
-        showToast(`📋 Work Order ${wo.work_order_id} dispatched for ${wo.asset_id.replace(/asset_?/i, 'Machine ')}!`, 'info');
+        showToast(`Work Order ${wo.work_order_id} dispatched for ${wo.asset_id.replace(/asset_?/i, 'Machine ')}`, 'info');
       }
     });
 
@@ -326,7 +326,7 @@ export const App: React.FC = () => {
     const unsubOperatorAction = liveWs.on<any>('operator_action', (event: LiveEvent<any>) => {
       const act = event.data;
       if (act) {
-        showToast(`⚙️ ${act.message || act.action}`, 'success');
+        showToast(`${act.message || act.action}`, 'success');
         if (act.action === 'TOOL_REPLACED') {
           setAssets((prev) =>
             prev.map((a) =>

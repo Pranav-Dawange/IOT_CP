@@ -381,7 +381,7 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
   const runScenario = async (scenario: ScenarioPreset) => {
     if (scenario.faults.length === 0) {
       setActiveScenario(scenario.id);
-      onNotification(`✅ Scenario "${scenario.name}" set — normal operations, no faults active.`, 'success');
+      onNotification(`Scenario "${scenario.name}" set — normal operations, no faults active.`, 'success');
       return;
     }
 
@@ -408,12 +408,12 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
     setIsRunningScenario(false);
     if (successCount > 0) {
       onNotification(
-        `🎬 Scenario "${scenario.name}" deployed — ${successCount} fault(s) injected across ${scenario.faults.map((f) => f.lines.join(', ')).join('; ')}.`,
+        `Scenario "${scenario.name}" deployed — ${successCount} fault(s) injected across ${scenario.faults.map((f) => f.lines.join(', ')).join('; ')}.`,
         'success'
       );
     }
     if (failCount > 0) {
-      onNotification(`⚠️ ${failCount} fault injection(s) failed — backend may not be ready.`, 'warning');
+      onNotification(`${failCount} fault injection(s) failed — backend may not be ready.`, 'warning');
     }
   };
 
@@ -423,7 +423,7 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
     setInjectingDevice(assetId);
     try {
       await apiClient.executeAssetAction(assetId, 'INJECT_FAULT', undefined, faultType);
-      onNotification(`⚡ Injected ${faultType} into ${assetId}.`, 'success');
+      onNotification(`Injected ${faultType} into ${assetId}.`, 'success');
     } catch (err: any) {
       onNotification(`Failed to inject fault into ${assetId}: ${err.message}`, 'warning');
     } finally {

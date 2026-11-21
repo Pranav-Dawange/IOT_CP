@@ -1,45 +1,85 @@
-# ESP32 Dual-Core FreeRTOS Edge Firmware
+# ESP32 Dual-Core FreeRTOS Edge Node Firmware
 
-Production C++ FreeRTOS firmware running on the ESP-WROOM-32 DevKit V1 microcontroller for cyber-physical milling spindle monitoring, real-time EMA filtering, and automated safety cutoff.
+Target Platform: **ESP-WROOM-32 DevKit V1** (240MHz Xtensa LX6 Dual-Core)  
+Framework: **Arduino-ESP32 / FreeRTOS Kernel v10.4**
 
 ---
 
-## 1. Hardware Pinout Allocation Matrix
+## 1. Hardware Interconnect Matrix
 
-| Component | Part / Model | ESP32 GPIO | Bus / Interface | Signal Description |
+| Peripheral Module | Transducer IC | Interface | ESP32 Pin | Signal Conditioning & Electrical Parameters |
 |:---|:---|:---|:---|:---|
-| **Current Sensor** | ACS712-30A | **GPIO 34** | ADC1_CH6 | 12-bit Analog voltage via 10k/15k divider (ratio 0.60) |
-| **Spindle Tachometer** | LM393 IR Comparator | **GPIO 18** | External Interrupt | Optical slotted interrupter with 8-slot encoder disc |
-| **Process Temp** | DS18B20 Waterproof | **GPIO 4** | 1-Wire Single Bus | Stator casing thermal probe (4.7kΩ pullup) |
-| **Ambient Temp** | DHT22 (AM2302) | **GPIO 19** | Single-Bus Digital | Ambient room temperature and RH (10kΩ pullup) |
-| **Safety Cutoff** | Songle 5V Relay | **GPIO 26** | Digital Output | Optoisolated coil driver (Active-LOW safety trip) |
-| **Local OLED Display** | SSD1306 128x64 | **GPIO 21 / 22** | I2C (SDA/SCL) | 0x3C address for live metric display |
-| **Vibration Transducer**| MPU-6050 6-DOF | **GPIO 21 / 22** | I2C (SDA/SCL) | 0x68 address for 3-axis vibration FFT |
+| **Armature Current** | ACS712-30A | ADC1_CH6 | **GPIO 34** | $10\text{ k}\Omega / 15\text{ k}\Omega$ resistive divider ($R_{\text{ratio}} = 0.60$); 12-bit ADC |
+| **Spindle Tachometer** | LM393 Optical IR | Ext Interrupt | **GPIO 18** | Hardware `RISING` edge interrupt on 8-slot optical encoder disc |
+| **Stator Temperature** | DS18B20 Probe | Dallas 1-Wire | **GPIO 4** | $4.7\text{ k}\Omega$ bus pull-up resistor; non-blocking conversion mode |
+| **Ambient Temp & RH** | DHT22 (AM2302) | Single-Bus | **GPIO 19** | $10\text{ k}\Omega$ pull-up resistor; digital pulse-width timing |
+| **Vibration Transducer**| MPU-6050 6-DOF | I2C (0x68) | **GPIO 21 (SDA), GPIO 22 (SCL)** | $\pm 2\text{g}$ dynamic range; 3-axis RMS acceleration vector |
+| **Local Status OLED** | SSD1306 128x64 | I2C (0x3C) | **GPIO 21 (SDA), GPIO 22 (SCL)** | Shared I2C hardware bus with MPU-6050 |
+| **Emergency Cutoff** | Songle 5V Relay | Digital Out | **GPIO 26** | Active-LOW optoisolated transistor driver with flyback diode |
 
 ---
 
-## 2. Multi-Core FreeRTOS Concurrency Architecture
+## 2. Multi-Core Concurrency & Scheduling Architecture
 
-- **Core 0 — High-Frequency Sensor Task (`TaskSensorAcquisition`)**:
-  - Pinned priority 2 task running at **100 Hz** (10ms tick).
-  - Samples ADC1 Channel 6 with 11dB attenuation.
-  - Computes Exponential Moving Average (`EMA_ALPHA = 0.30`).
-  - Evaluates hardware threshold ($I > 4.50\text{ A}$) and trips the Songle relay in **$< 10\text{ ms}$**.
-- **Core 1 — Telemetry & MQTT Streaming (`TaskMqttStreaming`)**:
-  - Pinned priority 1 task running at **1 Hz**.
-  - Reads pulse counter atomically with FreeRTOS `portENTER_CRITICAL`.
-  - Non-blocking thermal sampling with `setWaitForConversion(false)`.
-  - Publishes full 5-sensor contract telemetry to `factory/line_A/asset_01/telemetry`.
-  - Subscribes to `factory/line_A/asset_01/cmd` for bidirectional downlink actuation (`EMERGENCY_STOP`, `RESUME`, `RESET_BUFFER`).
+```
+                  ┌──────────────────────────────────────────────┐
+                  │          ESP-WROOM-32 (Dual-Core)             │
+                  └───────┬──────────────────────────────┬───────┘
+                          │                              │
+         CORE 0 (100 Hz RT Task)                CORE 1 (1 Hz Telemetry)
+         ┌────────────────────────┐             ┌────────────────────────┐
+         │ - ACS712 ADC Sampling  │             │ - Spindle RPM Calc     │
+         │ - EMA Filter (alpha=0.3)│             │ - Torque Calculation   │
+         │ - Fast Cutoff (<10 ms) │             │ - DS18B20 & DHT22 Read │
+         │   Trigger if I > 4.5A  │             │ - MPU-6050 RMS Accel   │
+         └───────────┬────────────┘             │ - WebSerial Stream     │
+                     │                          │ - MQTT JSON Publish    │
+             Shared State (Atomic               └───────────┬────────────┘
+             Spinlock portMUX)                              │
+                     │                                      │
+              [Relay Cutoff]                      [Local USB & WiFi/MQTT]
+```
+
+### Core 0 — Real-Time Signal Acquisition (`TaskSensorAcquisition`)
+- **Execution Rate**: 100 Hz (10 ms period using `vTaskDelayUntil`).
+- **Priority**: 2 (Higher priority than network transport).
+- **Function**: Reconstructs analog voltage from the resistive divider, applies an Exponential Moving Average (EMA) filter ($\alpha = 0.30$), and trips the Songle safety relay in $< 10\text{ ms}$ if current exceeds $4.50\text{ A}$.
+
+### Core 1 — Communication & Serialization (`TaskMqttStreaming`)
+- **Execution Rate**: 1.0 Hz (1000 ms period).
+- **Priority**: 1.
+- **Function**: Atomically resets the interrupt pulse counter within an enter/exit critical section, calculates spindle RPM and shaft torque (accounting for motor no-load current offset $I_0 = 0.35\text{ A}$), queries non-blocking thermal and vibration sensors, prints telemetry to the USB serial bus, and publishes JSON packets to the MQTT broker.
 
 ---
 
-## 3. Required Arduino Libraries
+## 3. Communication Protocols
 
-Install the following libraries via the Arduino Library Manager:
-- `PubSubClient` by Nick O'Leary (v2.8+)
-- `ArduinoJson` by Benoit Blanchon (v6.21+)
-- `DallasTemperature` by Miles Burton (v3.9+)
-- `OneWire` by Paul Stoffregen (v2.3+)
-- `DHT sensor library` by Adafruit (v1.4+)
-- `Adafruit SSD1306` & `Adafruit GFX Library` (v2.5+)
+### Local USB WebSerial Frame Format
+Emitted at 115200 baud, 8N1 over USB UART for direct frontend dashboard integration:
+```text
+[HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 VIB=1.22 AIR_TEMP=25.0 RELAY=1
+```
+
+### Downlink MQTT Command Dispatch
+Subscribed topic: `factory/line_A/asset_01/cmd`
+```json
+{
+  "command": "EMERGENCY_STOP"
+}
+```
+Supported commands:
+- `EMERGENCY_STOP` / `TRIP_RELAY`: Opens relay to isolate the motor circuit.
+- `RESUME`: Re-arms the safety relay.
+- `RESET_BUFFER`: Clears accumulated operational wear counter.
+
+---
+
+## 4. Software Dependencies
+
+Required Arduino IDE / PlatformIO libraries:
+- `PubSubClient` by Nick O'Leary (>= 2.8)
+- `ArduinoJson` by Benoit Blanchon (>= 6.21)
+- `DallasTemperature` by Miles Burton (>= 3.9)
+- `OneWire` by Paul Stoffregen (>= 2.3)
+- `DHT sensor library` by Adafruit (>= 1.4)
+- `Adafruit SSD1306` & `Adafruit GFX` (>= 2.5)
