@@ -29,6 +29,8 @@ interface MachinePrototype3DProps {
     torque: number;
     tempC: number;
     tempK: number;
+    airTempC?: number;
+    airTempK?: number;
     currentA: number;
     voltage: number;
     powerW: number;
@@ -487,6 +489,61 @@ export const MachinePrototype3D: React.FC<MachinePrototype3DProps> = ({
     registerInteractive(relayPcb, 'relay', 'Songle 5V Safety Cutoff Relay');
     scene.add(relayGroup);
 
+    // ─── 11b. 3D DHT22 / AM2302 AMBIENT AIR TEMPERATURE SENSOR ───────────────
+    const dhtGroup = new THREE.Group();
+    dhtGroup.position.set(1.6, 1.1, -2.6);
+
+    // Blue Breakout Substrate PCB
+    const dhtPcb = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.14, 2.4),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 })
+    );
+    dhtPcb.position.y = 0.07;
+    dhtGroup.add(dhtPcb);
+
+    // Characteristic White Perforated Plastic AM2302 Body
+    const dhtBody = new THREE.Mesh(
+      new THREE.BoxGeometry(1.6, 1.9, 1.4),
+      new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.35,
+        metalness: 0.05,
+      })
+    );
+    dhtBody.position.set(0, 1.05, -0.2);
+    dhtBody.castShadow = true;
+    dhtGroup.add(dhtBody);
+
+    // Perforated Airflow Grille Horizontal Slits
+    const grillSlotGeo = new THREE.BoxGeometry(1.1, 0.08, 0.08);
+    const grillSlotMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+    for (let g = 0; g < 4; g++) {
+      const slot = new THREE.Mesh(grillSlotGeo, grillSlotMat);
+      slot.position.set(0, 0.65 + g * 0.28, 0.52);
+      dhtGroup.add(slot);
+    }
+
+    // Top Mounting Tab Eyelet
+    const dhtTab = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.35, 0.12, 16),
+      new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 })
+    );
+    dhtTab.position.set(0, 2.02, -0.2);
+    dhtGroup.add(dhtTab);
+
+    // 3 Gold-plated Header Pins connecting to breadboard tie-points
+    const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 });
+    [-0.4, 0, 0.4].forEach(px => {
+      const pin = new THREE.Mesh(pinGeo, pinMat);
+      pin.position.set(px, -0.08, 0.7);
+      dhtGroup.add(pin);
+    });
+
+    registerInteractive(dhtBody, 'dht22', 'DHT22 / AM2302 Ambient Air Temp & Humidity Sensor');
+    registerInteractive(dhtPcb, 'dht22', 'DHT22 / AM2302 Ambient Air Temp & Humidity Sensor');
+    scene.add(dhtGroup);
+
     // ─── 12. 3D RS-775 24V DC SPINDLE MOTOR RIG (RIGHT WORKBENCH) ────────────
     const motorRigGroup = new THREE.Group();
     motorRigGroup.position.set(9.5, 0, 0);
@@ -712,6 +769,17 @@ export const MachinePrototype3D: React.FC<MachinePrototype3DProps> = ({
         ],
       },
       {
+        id: 'dht22_data',
+        bus: 'gpio',
+        color: 0x06b6d4,
+        points: [
+          new THREE.Vector3(1.6, 1.2, -1.9),
+          new THREE.Vector3(0.6, 2.1, -1.4),
+          new THREE.Vector3(-1.0, 1.8, -0.8),
+          new THREE.Vector3(-2.2, 1.3, -0.5),
+        ],
+      },
+      {
         id: 'motor_24v_loop',
         bus: 'motor',
         color: 0xdc2626,
@@ -918,7 +986,7 @@ export const MachinePrototype3D: React.FC<MachinePrototype3DProps> = ({
 
       {/* Orbit Controls Hint Badge */}
       <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] font-mono text-slate-400 backdrop-blur-sm pointer-events-none">
-        🖱️ Left Click: Rotate · Right Click: Pan · Scroll: Zoom
+        Left Click: Rotate · Right Click: Pan · Scroll: Zoom
       </div>
 
       {/* Real-Time Live Status Pill */}
@@ -927,6 +995,10 @@ export const MachinePrototype3D: React.FC<MachinePrototype3DProps> = ({
         <span className="text-white font-bold">{telemetry.rpm} RPM</span>
         <span className="text-slate-500">|</span>
         <span className="text-cyan-400 font-bold">{telemetry.powerW.toFixed(0)} W</span>
+        <span className="text-slate-500">|</span>
+        <span className="text-emerald-400 font-bold" title="DHT22 Ambient Air Temp">
+          Air: {(telemetry.airTempC || 25.0).toFixed(1)}°C
+        </span>
       </div>
 
       {/* Interactive Raycast Hover Tooltip */}

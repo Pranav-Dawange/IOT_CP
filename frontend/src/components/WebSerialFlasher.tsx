@@ -22,6 +22,7 @@ export interface WebSerialFlasherProps {
     rpm: number;
     currentA: number;
     tempC: number;
+    airTempC?: number;
     vibrationG: number;
     relayState: boolean;
   }) => void;
@@ -80,6 +81,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
     rpm: 0,
     currentA: 0,
     tempC: 25.0,
+    airTempC: 25.0,
     vibrationG: 0.05,
     relayClosed: true,
     packetCount: 0,
@@ -110,7 +112,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       setIsSupported(true);
     } else {
       setIsSupported(false);
-      appendLog('SYS', '⚠ WebSerial API is not supported in this browser. Use Chrome, Edge, or Opera.');
+      appendLog('SYS', 'WebSerial API is not supported in this browser. Use Chrome, Edge, or Opera.');
     }
   }, []);
 
@@ -130,11 +132,12 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
   const parseSerialLine = useCallback((line: string) => {
     appendLog('IN', line);
 
-    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 VIB=1.22 RELAY=1
+    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 AIR_TEMP=25.0 VIB=1.22 RELAY=1
     if (line.includes('[HW_TELEM]') || line.includes('[TELEMETRY]')) {
       const rpmMatch = line.match(/RPM=([\d.]+)/i);
       const currMatch = line.match(/(?:CURR|CURRENT)=([\d.]+)/i);
-      const tempMatch = line.match(/TEMP=([\d.]+)/i);
+      const tempMatch = line.match(/(?:STATOR_TEMP|TEMP)=([\d.]+)/i);
+      const airMatch = line.match(/(?:AIR_TEMP|AIR|T_AIR)=([\d.]+)/i);
       const vibMatch = line.match(/(?:VIB|VIBRATION)=([\d.]+)/i);
       const relayMatch = line.match(/RELAY=(\d+)/i);
 
@@ -142,6 +145,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         rpm: rpmMatch ? parseFloat(rpmMatch[1]) : hardwareTelemetry.rpm,
         currentA: currMatch ? parseFloat(currMatch[1]) : hardwareTelemetry.currentA,
         tempC: tempMatch ? parseFloat(tempMatch[1]) : hardwareTelemetry.tempC,
+        airTempC: airMatch ? parseFloat(airMatch[1]) : hardwareTelemetry.airTempC,
         vibrationG: vibMatch ? parseFloat(vibMatch[1]) : hardwareTelemetry.vibrationG,
         relayClosed: relayMatch ? relayMatch[1] === '1' : hardwareTelemetry.relayClosed,
       };
@@ -153,12 +157,13 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         lastPacketTime: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       }));
 
-      // Pipe to parent dashboard
+      // Pipe all 5 sensor readings to parent dashboard
       if (onLiveHardwareTelemetry) {
         onLiveHardwareTelemetry({
           rpm: parsed.rpm,
           currentA: parsed.currentA,
           tempC: parsed.tempC,
+          airTempC: parsed.airTempC,
           vibrationG: parsed.vibrationG,
           relayState: parsed.relayClosed,
         });
@@ -207,7 +212,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
 
       setIsConnected(true);
       setIsVirtualLoopback(false);
-      appendLog('SYS', `✓ Physical Port Opened: ${portName} @ ${baudRate} baud.`);
+      appendLog('SYS', `Physical Port Opened: ${portName} @ ${baudRate} baud.`);
       appendLog('SYS', 'Querying ESP32 system information...');
 
       // Start reading stream
@@ -281,9 +286,10 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       const baseRpm = isBenchPowered ? 1650 + Math.round((Math.random() - 0.5) * 80) : 0;
       const baseCurr = isBenchPowered ? parseFloat((1.82 + (Math.random() - 0.5) * 0.15).toFixed(2)) : 0;
       const baseTemp = isBenchPowered ? parseFloat((34.2 + (Math.random() - 0.5) * 0.4).toFixed(1)) : 25.0;
+      const baseAirTemp = isBenchPowered ? parseFloat((24.8 + (Math.random() - 0.5) * 0.3).toFixed(1)) : 22.0;
       const baseVib = isBenchPowered ? parseFloat((1.24 + (Math.random() - 0.5) * 0.08).toFixed(2)) : 0.04;
 
-      const telemLine = `[HW_TELEM] RPM=${baseRpm} CURR=${baseCurr} TEMP=${baseTemp} VIB=${baseVib} RELAY=1`;
+      const telemLine = `[HW_TELEM] RPM=${baseRpm} CURR=${baseCurr} TEMP=${baseTemp} AIR_TEMP=${baseAirTemp} VIB=${baseVib} RELAY=1`;
       parseSerialLine(telemLine);
     }, 1200);
   };
@@ -338,7 +344,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
           appendLog('IN', 'configsip: 0, SPIWP:0xee\nclk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00');
           appendLog('IN', '[INIT] Dual-Core FreeRTOS Initialized. Task affinity verified.');
         } else if (cleanCmd.toUpperCase() === 'TRIP_RELAY') {
-          appendLog('IN', '⚡ [SAFETY] GPIO 26 PULLED LOW -> SONGLE RELAY OPENED (24V ISOLATED)');
+          appendLog('IN', '[SAFETY] GPIO 26 PULLED LOW -> SONGLE RELAY OPENED (24V ISOLATED)');
         } else if (cleanCmd.toUpperCase() === 'GET_SYS_INFO') {
           appendLog('IN', 'Chip: ESP32-D0WD-V3 (240MHz Xtensa LX6 Dual-Core)');
           appendLog('IN', 'Flash: 4MB Winbond QSPI (DIO 80MHz)');
@@ -389,8 +395,8 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashProgress(15);
         setFlashLog(prev => [
           ...prev,
-          '✓ Chip detected: ESP32-D0WD-V3 (Dual Core 240MHz, Revision 3)',
-          '✓ Flash Manufacturer: Winbond (ID: 0x4016, 4MB DIO 80MHz)',
+          'Chip detected: ESP32-D0WD-V3 (Dual Core 240MHz, Revision 3)',
+          'Flash Manufacturer: Winbond (ID: 0x4016, 4MB DIO 80MHz)',
           'Erasing flash blocks (0x00001000 - 0x00150000)...',
         ]);
       } else if (step === 6) {
@@ -415,7 +421,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashLog(prev => [
           ...prev,
           'Verifying MD5 checksum of written binary images...',
-          'MD5 digest: 4a9f8b2c1d3e7a0f6b8c9d0e1f2a3b4c (MATCHED ✓)',
+          'MD5 digest: 4a9f8b2c1d3e7a0f6b8c9d0e1f2a3b4c (VERIFIED)',
         ]);
       } else if (step === 14) {
         clearInterval(interval);
@@ -424,9 +430,9 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         setFlashLog(prev => [
           ...prev,
           'Hard resetting via RTS pin...',
-          '✓ Firmware Flash Complete! ESP32 booting v5.0-AI4I-Edge.',
+          'Firmware Flash Complete. ESP32 booting production firmware.',
         ]);
-        appendLog('SYS', '✓ Firmware Flash Successful: ESP32 rebooted into Production Mode.');
+        appendLog('SYS', 'Firmware Flash Successful: ESP32 rebooted into Production Mode.');
       }
     }, 450);
   };
@@ -505,7 +511,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
             { id: 'terminal', label: 'UART Serial Terminal', icon: <Terminal className="w-3.5 h-3.5" /> },
             { id: 'flasher', label: 'ESP32 Firmware Flasher', icon: <Zap className="w-3.5 h-3.5" /> },
             { id: 'telemetry', label: 'Hardware Telemetry Stream', icon: <Activity className="w-3.5 h-3.5" /> },
-            { id: 'troubleshoot', label: 'USB Drivers & Viva Notes', icon: <HelpCircle className="w-3.5 h-3.5" /> },
+            { id: 'troubleshoot', label: 'USB Drivers & Interface Setup', icon: <HelpCircle className="w-3.5 h-3.5" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -642,15 +648,25 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       )}
 
       {/* ─── TAB 2: ESP32 FIRMWARE FLASHER ─── */}
+      {/* ─── TAB 2: FIRMWARE FLASHER & PARTITION MAP STUDIO ─── */}
       {activeTab === 'flasher' && (
         <div className="space-y-4">
           <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="font-bold text-white text-xs">Firmware Image Selection:</span>
+                <span className="font-bold text-white text-xs">Firmware Image Selection &amp; Bootloader Emulation:</span>
                 <span className="text-[11px] text-slate-400 ml-2">ESP32 Dual-Core FreeRTOS v5.0</span>
               </div>
-              <span className="text-[10px] text-cyan-400 font-bold">Chip Target: ESP32-WROOM-32 (4MB Flash)</span>
+              <span className="text-[10px] text-cyan-400 font-bold">Target: ESP32-WROOM-32 (4MB QSPI)</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-blue-950/30 border border-blue-800/50 text-[11px] text-blue-200">
+              <strong className="text-white">Physical Hardware Flashing: </strong>
+              To flash physical silicon directly from your terminal, execute:
+              <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 ml-1">
+                esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x10000 firmware.bin
+              </code>.
+              The panel below provides interactive Hardware-in-the-Loop (HIL) ROM bootloader protocol verification, SLIP handshake trace, and partition table inspection.
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -760,7 +776,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-900/30 disabled:opacity-50 transition-all hover:scale-102"
               >
                 <Zap className="w-4 h-4" />
-                <span>Flash Firmware to ESP32</span>
+                <span>Execute ROM Flash Protocol Emulation</span>
               </button>
             </div>
           </div>
@@ -770,10 +786,10 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       {/* ─── TAB 3: HARDWARE TELEMETRY STREAM ─── */}
       {activeTab === 'telemetry' && (
         <div className="space-y-3 text-xs">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {/* Live Hardware RPM */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Live Hardware RPM</div>
+              <div className="text-[10px] text-slate-500">Live Spindle Speed</div>
               <div className="text-xl font-bold text-orange-400 mt-1">
                 {hardwareTelemetry.rpm} <span className="text-xs text-slate-500">RPM</span>
               </div>
@@ -782,29 +798,38 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
 
             {/* Live Current */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Hall Current (ACS712)</div>
+              <div className="text-[10px] text-slate-500">Armature Current</div>
               <div className="text-xl font-bold text-emerald-400 mt-1">
                 {hardwareTelemetry.currentA.toFixed(2)} <span className="text-xs text-slate-500">A</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">GPIO34 ADC1_CH6</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">ACS712 GPIO34 ADC1</div>
             </div>
 
-            {/* Live Temp */}
+            {/* Live Stator Temp */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Stator Temp (DS18B20)</div>
+              <div className="text-[10px] text-slate-500">Process Stator Temp</div>
               <div className="text-xl font-bold text-purple-400 mt-1">
                 {hardwareTelemetry.tempC.toFixed(1)} <span className="text-xs text-slate-500">°C</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">1-Wire GPIO4 (4.7kΩ)</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">DS18B20 1-Wire (GPIO5)</div>
+            </div>
+
+            {/* Live Ambient Air Temp */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="text-[10px] text-slate-500">Ambient Air Temp</div>
+              <div className="text-xl font-bold text-cyan-400 mt-1">
+                {hardwareTelemetry.airTempC.toFixed(1)} <span className="text-xs text-slate-500">°C</span>
+              </div>
+              <div className="text-[9px] text-slate-500 mt-0.5">DHT22 Single-Bus (GPIO19)</div>
             </div>
 
             {/* Live Vibration */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Vibration (MPU-6050)</div>
+              <div className="text-[10px] text-slate-500">Bearing Vibration</div>
               <div className="text-xl font-bold text-blue-400 mt-1">
                 {hardwareTelemetry.vibrationG.toFixed(2)} <span className="text-xs text-slate-500">g RMS</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">I2C 0x68 (SDA:21/SCL:22)</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">MPU-6050 I2C (GPIO21/22)</div>
             </div>
           </div>
 
@@ -836,7 +861,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3 text-xs">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
             <Wrench className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-white">ESP32 USB Serial Drivers & Viva Defense Reference</span>
+            <span className="font-bold text-white">ESP32 USB Serial Driver Configuration & Interface Reference</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">

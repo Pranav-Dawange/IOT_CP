@@ -85,6 +85,38 @@ class MQTTConsumerService:
     def is_connected(self) -> bool:
         return self._connected_event.is_set()
 
+    def publish_command(
+        self,
+        line: str,
+        asset_id: str,
+        command: str,
+        details: Optional[Dict[str, Any]] = None,
+        qos: int = 1,
+    ) -> bool:
+        """
+        Publish a downlink control actuation command to factory/{line}/{asset_id}/cmd.
+        Closes the cyber-physical control loop between backend analytics and edge machines.
+        """
+        if not self._paho_client or not self.is_connected:
+            logger.debug(f"Cannot publish downlink command '{command}': MQTT client not connected.")
+            return False
+
+        topic = f"factory/{line}/{asset_id}/cmd"
+        payload = {
+            "asset_id": asset_id,
+            "line": line,
+            "command": command,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "details": details or {},
+        }
+        try:
+            info = self._paho_client.publish(topic, json.dumps(payload), qos=qos)
+            logger.info(f"Published downlink command '{command}' to topic '{topic}' (mid={info.mid})")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to publish command to '{topic}': {e}")
+            return False
+
     async def start(self) -> bool:
         """Start the consumer background worker and connect to MQTT broker."""
         if self._loop is None:
@@ -282,9 +314,10 @@ class MQTTConsumerService:
         if self._paho_client and self._is_started:
             try:
                 self._paho_client.disconnect()
-                self._paho_client.loop_stop()
+                loop = asyncio.get_running_loop()
+                await asyncio.wait_for(loop.run_in_executor(None, self._paho_client.loop_stop), timeout=1.0)
             except Exception as e:
-                logger.debug(f"Error during MQTT client disconnect: {e}")
+                logger.debug(f"Error during MQTT client disconnect/loop_stop: {e}")
             finally:
                 self._is_started = False
                 self._connected_event.clear()

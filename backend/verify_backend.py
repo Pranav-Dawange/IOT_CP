@@ -31,7 +31,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 
 import backend.app.database.connection as db_conn
 from backend.app.config import Settings, get_settings

@@ -490,7 +490,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
                       </span>
                       <span className="block text-[9px] text-slate-400 mt-0.5">
                         {simulationResult.power_watts > 9000
-                          ? '⚠️ Overpower Limit'
+                          ? 'Overpower Limit'
                           : 'Normal Range'}
                       </span>
                     </div>
@@ -504,7 +504,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
                       </span>
                       <span className="block text-[9px] text-slate-400 mt-0.5">
                         {simulationResult.temp_diff_k < 8.6
-                          ? '⚠️ Low Gradient (HDF)'
+                          ? 'Low Gradient (HDF)'
                           : 'Adequate Cooling'}
                       </span>
                     </div>
