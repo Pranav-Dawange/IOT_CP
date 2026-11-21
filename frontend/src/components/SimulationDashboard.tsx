@@ -23,12 +23,15 @@ import {
   CircleDot,
   Cpu,
   Flame,
+  Gauge,
   Layers,
   Play,
   Radio,
   RefreshCw,
+  RotateCw,
   Settings2,
   Sparkles,
+  Thermometer,
   Timer,
   WifiOff,
   Wrench,
@@ -45,9 +48,11 @@ interface SimDeviceStats {
   asset_id: string;
   line: string;
   status: string;
+  air_temp?: number | null;
+  process_temp?: number | null;
+  rotational_speed?: number | null;
   torque?: number | null;
   tool_wear?: number | null;
-  process_temp?: number | null;
   seq?: number | null;
   risk?: number | null;
   hasAnomaly?: boolean;
@@ -201,25 +206,60 @@ const DeviceCard: React.FC<{
         </span>
       </div>
 
-      {/* Sensor snapshot */}
-      <div className="grid grid-cols-3 gap-1 text-center">
-        <div className="bg-slate-900/60 rounded p-1">
-          <div className="text-[9px] text-slate-400 uppercase font-mono">Torque</div>
-          <div className={`text-[11px] font-bold font-mono ${(device.torque ?? 0) > 65 ? 'text-amber-400' : 'text-slate-200'}`}>
-            {device.torque != null ? `${device.torque.toFixed(0)} Nm` : '—'}
+      {/* 5-Sensor Telemetry Snapshot */}
+      <div className="space-y-1">
+        <div className="grid grid-cols-2 gap-1 text-center">
+          <div className="bg-slate-900/60 rounded p-1 border border-slate-800/40">
+            <div className="text-[8.5px] text-sky-400 font-mono flex items-center justify-center gap-0.5">
+              <Thermometer className="w-2.5 h-2.5" /> Air T
+            </div>
+            <div className="text-[10.5px] font-bold font-mono text-slate-200">
+              {device.air_temp != null ? `${device.air_temp.toFixed(1)} K` : '—'}
+            </div>
+          </div>
+          <div className="bg-slate-900/60 rounded p-1 border border-slate-800/40">
+            <div className="text-[8.5px] text-amber-400 font-mono flex items-center justify-center gap-0.5">
+              <Flame className="w-2.5 h-2.5" /> Proc T
+            </div>
+            <div className={`text-[10.5px] font-bold font-mono ${(device.process_temp ?? 0) > 312 ? 'text-amber-400' : 'text-slate-200'}`}>
+              {device.process_temp != null ? `${device.process_temp.toFixed(1)} K` : '—'}
+            </div>
           </div>
         </div>
-        <div className="bg-slate-900/60 rounded p-1">
-          <div className="text-[9px] text-slate-400 uppercase font-mono">Wear</div>
-          <div className={`text-[11px] font-bold font-mono ${(device.tool_wear ?? 0) > 200 ? 'text-rose-400' : 'text-slate-200'}`}>
-            {device.tool_wear != null ? `${device.tool_wear.toFixed(0)} min` : '—'}
+
+        <div className="grid grid-cols-3 gap-1 text-center">
+          <div className="bg-slate-900/60 rounded p-1 border border-slate-800/40">
+            <div className="text-[8.5px] text-yellow-400 font-mono flex items-center justify-center gap-0.5">
+              <Gauge className="w-2.5 h-2.5" /> RPM
+            </div>
+            <div className={`text-[10px] font-bold font-mono ${(device.rotational_speed ?? 0) < 1300 ? 'text-rose-400' : 'text-slate-200'}`}>
+              {device.rotational_speed != null ? `${device.rotational_speed.toFixed(0)}` : '—'}
+            </div>
+          </div>
+          <div className="bg-slate-900/60 rounded p-1 border border-slate-800/40">
+            <div className="text-[8.5px] text-emerald-400 font-mono flex items-center justify-center gap-0.5">
+              <Zap className="w-2.5 h-2.5" /> Torque
+            </div>
+            <div className={`text-[10px] font-bold font-mono ${(device.torque ?? 0) > 65 ? 'text-amber-400' : 'text-slate-200'}`}>
+              {device.torque != null ? `${device.torque.toFixed(0)} Nm` : '—'}
+            </div>
+          </div>
+          <div className="bg-slate-900/60 rounded p-1 border border-slate-800/40">
+            <div className="text-[8.5px] text-purple-400 font-mono flex items-center justify-center gap-0.5">
+              <Wrench className="w-2.5 h-2.5" /> Wear
+            </div>
+            <div className={`text-[10px] font-bold font-mono ${(device.tool_wear ?? 0) > 200 ? 'text-rose-400' : 'text-slate-200'}`}>
+              {device.tool_wear != null ? `${device.tool_wear.toFixed(0)}m` : '—'}
+            </div>
           </div>
         </div>
-        <div className="bg-slate-900/60 rounded p-1">
-          <div className="text-[9px] text-slate-400 uppercase font-mono">Risk</div>
-          <div className={`text-[11px] font-bold font-mono ${getRiskColor(device.risk)}`}>
+
+        {/* GRU ML Risk Bar */}
+        <div className="flex items-center justify-between px-2 py-0.5 bg-slate-950/60 rounded border border-slate-800/60 text-[9.5px] font-mono">
+          <span className="text-slate-400">Risk Score:</span>
+          <span className={`font-bold ${getRiskColor(device.risk)}`}>
             {device.risk != null ? `${(device.risk * 100).toFixed(0)}%` : '—'}
-          </div>
+          </span>
         </div>
       </div>
 
@@ -318,9 +358,11 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
     asset_id: a.asset_id,
     line: a.line,
     status: a.status,
+    air_temp: a.latest_telemetry?.air_temperature ?? null,
+    process_temp: a.latest_telemetry?.process_temperature ?? null,
+    rotational_speed: a.latest_telemetry?.rotational_speed ?? null,
     torque: a.latest_telemetry?.torque ?? null,
     tool_wear: a.latest_telemetry?.tool_wear ?? null,
-    process_temp: a.latest_telemetry?.process_temperature ?? null,
     seq: a.latest_telemetry?.sequence_number ?? null,
     risk: a.latest_prediction?.failure_probability ?? null,
     hasAnomaly: (a.latest_telemetry?.edge?.anomaly_flags?.length ?? 0) > 0,
