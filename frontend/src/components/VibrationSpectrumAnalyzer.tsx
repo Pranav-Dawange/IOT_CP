@@ -718,7 +718,7 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
                 Vibration FFT Spectrum Analyzer
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                Radix-2 FFT · MPU-6050
+                Kinematic Spectral Synthesizer · ISO 10816
               </span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
