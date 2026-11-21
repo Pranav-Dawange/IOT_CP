@@ -214,6 +214,30 @@ const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
     scopeWaveform: 'sine',
     ledColor: '#60a5fa',
   },
+  dht22: {
+    id: 'dht22',
+    name: 'DHT22 / AM2302 Ambient Air Temperature & Humidity',
+    partNumber: 'Aosong AM2302 Digital Sensor (Single-Bus Digital Signal)',
+    category: 'SENSOR',
+    measuredMetric: 'Ambient Air Temperature surrounding CNC machine (T_air [K])',
+    pinout: [
+      { pin: 'VCC', target: '3.3V Power Rail', color: '#ef4444', desc: 'Power Supply', voltage: '3.3V' },
+      { pin: 'GND', target: 'Common GND Rail', color: '#1e293b', desc: 'Ground Reference', voltage: '0.0V' },
+      { pin: 'DATA', target: 'ESP32 GPIO 19', color: '#38bdf8', desc: 'Single-Bus Protocol (10kΩ Pull-Up)', voltage: '3.3V' },
+    ],
+    principle: 'Capacitive humidity sensor and high-precision thermistor element measuring surrounding factory ambient temperature. Feeds feature #1 of the AI4I 2020 predictive maintenance GRU model, enabling distinction between ambient room shifts and internal machining process friction heat.',
+    formula: 'T_{ambient} = RAW \\times 0.1 ^\\circ\\text{C},   T_{Kelvin} = T_{ambient} + 273.15',
+    calibratedValue: (t) => `${(t.airTempC || 25.0).toFixed(1)} °C  (${(t.airTempK || 298.15).toFixed(1)} K ambient)`,
+    voltage: '3.3 - 5.5 V',
+    specs: [
+      { label: 'Measuring Range', value: '-40°C to +80°C (±0.5°C accuracy)' },
+      { label: 'Resolution', value: '16-bit (0.1°C resolution)' },
+      { label: 'Sampling Period', value: '2 seconds (0.5 Hz standard)' },
+      { label: 'Digital Interface', value: 'Custom single-wire bidirectional serial' },
+    ],
+    scopeWaveform: 'pulse',
+    ledColor: '#38bdf8',
+  },
   oled: {
     id: 'oled',
     name: '0.96″ I2C OLED Telemetry Display',
@@ -618,6 +642,9 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         torque: 0,
         tempC: 24.5,
         tempK: 297.65,
+        airTempC: 22.0,
+        airTempK: 295.15,
+        toolWear: 0,
         currentA: 0,
         voltage: benchPowerOn ? 24.0 : 0.0,
         powerW: 0,
@@ -636,6 +663,9 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         torque,
         tempC,
         tempK: parseFloat((tempC + 273.15).toFixed(1)),
+        airTempC: 23.5,
+        airTempK: 296.65,
+        toolWear: 30,
         currentA,
         voltage: relayState ? 24.0 : 0.0,
         powerW: relayState ? powerW : 0,
@@ -657,6 +687,9 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         torque,
         tempC,
         tempK: parseFloat((tempC + 273.15).toFixed(1)),
+        airTempC: 24.8,
+        airTempK: 298.0,
+        toolWear: 45,
         currentA,
         voltage: 24.0,
         powerW,
@@ -669,6 +702,8 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
     const torque = t.torque || 40;
     const tempK = t.process_temperature || 308;
     const tempC = parseFloat((tempK - 273.15).toFixed(1));
+    const airTempK = t.air_temperature || 298.15;
+    const airTempC = parseFloat((airTempK - 273.15).toFixed(1));
     const currentA = parseFloat(((torque / 16) * 1.5 + 1.1).toFixed(2));
     const powerW = parseFloat((currentA * 24.0).toFixed(1));
     return {
@@ -676,6 +711,9 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
       torque,
       tempC,
       tempK,
+      airTempC,
+      airTempK,
+      toolWear: t.tool_wear || 0,
       currentA,
       voltage: 24.0,
       powerW,
@@ -983,10 +1021,11 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                   <tr><td className="p-2 font-bold text-white">Speed Tachometer</td><td>LM393 Slotted Optocoupler</td><td>Spindle RPM</td><td>Hardware INT (GPIO 18)</td><td>3.3V Logic</td><td>$1.10</td></tr>
                   <tr><td className="p-2 font-bold text-white">Stator Probe</td><td>Maxim DS18B20 Stainless</td><td>Stator Temperature</td><td>Dallas 1-Wire (GPIO 4)</td><td>3.3V Logic</td><td>$2.80</td></tr>
                   <tr><td className="p-2 font-bold text-white">Vibration IMU</td><td>InvenSense MPU-6050</td><td>ISO 10816 Bearing Jitter</td><td>I2C 0x68 (GPIO 21/22)</td><td>3.3V Regulated</td><td>$1.90</td></tr>
+                  <tr><td className="p-2 font-bold text-white">Ambient Temp</td><td>Aosong DHT22 / AM2302</td><td>Ambient Air Temp [K]</td><td>Digital 1-Wire (GPIO 19)</td><td>3.3V Logic</td><td>$2.50</td></tr>
                   <tr><td className="p-2 font-bold text-white">OLED Display</td><td>SSD1306 0.96″ 128×64</td><td>Local Telemetry Display</td><td>I2C 0x3C (GPIO 21/22)</td><td>3.3V Logic</td><td>$2.40</td></tr>
                   <tr><td className="p-2 font-bold text-white">Safety Cutoff</td><td>Songle SRD-05VDC Relay</td><td>Emergency Circuit Breaker</td><td>Optoisolated GPIO 26</td><td>5V Coil / 24V Load</td><td>$1.50</td></tr>
                   <tr><td className="p-2 font-bold text-white">Spindle Motor</td><td>RS-775 24V DC Motor</td><td>Monitored Industrial Asset</td><td>24V Armature Circuit</td><td>24.0V DC / 0-5A</td><td>$12.00</td></tr>
-                  <tr className="bg-slate-950 font-bold"><td colSpan={5} className="p-2 text-right text-slate-400">Total Prototype Hardware Cost:</td><td className="p-2 text-cyan-300">$28.40</td></tr>
+                  <tr className="bg-slate-950 font-bold"><td colSpan={5} className="p-2 text-right text-slate-400">Total Prototype Hardware Cost (5 Sensors):</td><td className="p-2 text-cyan-300">$30.90</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2466,6 +2505,20 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
                     spark: history.vib,
                     sc: '#60a5fa',
                     warn: telemetry.vibrationG > 2.8,
+                  },
+                  {
+                    compId: 'dht22',
+                    icon: <Thermometer className="w-4 h-4" />,
+                    bg: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+                    label: 'DHT22 Ambient Air Temp',
+                    sub: 'GPIO19 Digital (Air Temp [K])',
+                    val: `${telemetry.airTempC.toFixed(1)}`,
+                    unit: '°C',
+                    sub2: `${telemetry.airTempK.toFixed(1)} K ambient`,
+                    vc: 'text-sky-400',
+                    spark: history.temp,
+                    sc: '#38bdf8',
+                    warn: false,
                   },
                 ].map(item => (
                   <div
