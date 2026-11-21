@@ -65,15 +65,15 @@ export const App: React.FC = () => {
     window.location.hash = page;
   };
 
-  // ── Keyboard shortcuts: 1–5 = pages, Esc = close modals ──────────────────
+  // ── Keyboard shortcuts: 1–6 = pages, Esc = close modals ──────────────────
   useEffect(() => {
-    const pages: PageRoute[] = ['fleet', 'twin', 'wiring', 'vibration', 'simulator'];
+    const pages: PageRoute[] = ['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'];
     const handleKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Escape') {
         setIsDisclaimerOpen(false);
         setIsWhatIfOpen(false);
-      } else if (e.key >= '1' && e.key <= '5') {
+      } else if (e.key >= '1' && e.key <= '6') {
         const idx = parseInt(e.key, 10) - 1;
         if (pages[idx]) handleSelectPage(pages[idx]);
       }
@@ -86,7 +86,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '') as PageRoute;
-      if (['fleet', 'twin', 'wiring', 'vibration', 'simulator'].includes(hash)) {
+      if (['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash)) {
         setCurrentPage(hash);
       }
     };
