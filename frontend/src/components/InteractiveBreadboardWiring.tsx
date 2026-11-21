@@ -21,9 +21,31 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertOctagon, AlertTriangle, CheckCircle2, ChevronRight,
-  Flame, HelpCircle, Info, MousePointer, Play, Plus, Power,
-  RefreshCw, RotateCcw, ShieldAlert, Sparkles, Trash2, Wrench, X, Zap
+  Activity,
+  AlertOctagon,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  ChevronRight,
+  Cpu,
+  FileCheck2,
+  Flame,
+  HelpCircle,
+  Info,
+  Layers,
+  MousePointer,
+  Play,
+  Plus,
+  Power,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Wrench,
+  X,
+  Zap,
 } from 'lucide-react';
 
 export interface PinDefinition {
@@ -52,6 +74,17 @@ export interface WiringDiagnosis {
   vivaNote: string;
   shortCircuit: boolean;
   overvoltage: boolean;
+}
+
+export interface ERCRuleResult {
+  id: string;
+  name: string;
+  category: 'POWER' | 'GROUND' | 'ISOLATION' | 'PROTOCOL' | 'SIGNAL';
+  status: 'PASS' | 'FAIL' | 'WARN';
+  measuredValue: string;
+  details: string;
+  vivaNote: string;
+  affectedPins?: string[];
 }
 
 // All breadboard tie-points
@@ -157,6 +190,9 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
   const [activeWireColor, setActiveWireColor] = useState<string>('#38bdf8');
   const [testRunActive, setTestRunActive] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<string>('nominal');
+  const [isTestingERC, setIsTestingERC] = useState<boolean>(false);
+  const [testProgress, setTestProgress] = useState<number>(0);
+  const [isERCModalOpen, setIsERCModalOpen] = useState<boolean>(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -167,93 +203,228 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
     return map;
   }, []);
 
-  // ─── ELECTRICAL RULE CHECK (ERC) & MISWIRING DETECTION ENGINE ──────────────
-  const diagnosis: WiringDiagnosis = useMemo(() => {
-    // Check for Short Circuits: Any wire connecting a POWER pin directly to a GND pin
+  // ─── ELECTRICAL RULE CHECK (ERC) MULTI-RULE VERIFICATION ENGINE ──────────────
+  const ercRules: ERCRuleResult[] = useMemo(() => {
+    const isConn = (a: string, b: string) =>
+      wires.some(w => (w.fromPinId === a && w.toPinId === b) || (w.fromPinId === b && w.toPinId === a));
+
+    const rules: ERCRuleResult[] = [];
+
+    // Rule 1: Power Rail Distribution (+5.0V & +3.3V MB102)
+    const esp5v = isConn('rail_5v', 'esp32_vin');
+    const acs5v = isConn('rail_5v', 'acs_vcc');
+    const relay5v = isConn('rail_5v', 'relay_vcc');
+    const mpu3v3 = isConn('rail_3v3', 'mpu_vcc') || isConn('esp32_3v3', 'mpu_vcc');
+    const lm3v3 = isConn('rail_3v3', 'lm_vcc') || isConn('esp32_3v3', 'lm_vcc');
+    const ds3v3 = isConn('rail_3v3', 'ds_vcc') || isConn('esp32_3v3', 'ds_vcc');
+    const allPowerOk = esp5v && acs5v && relay5v && mpu3v3 && lm3v3 && ds3v3;
+
+    rules.push({
+      id: 'erc_pwr_rails',
+      name: 'Regulated Power Rails (+5.0V & +3.3V MB102)',
+      category: 'POWER',
+      status: allPowerOk ? 'PASS' : !esp5v ? 'FAIL' : 'WARN',
+      measuredValue: allPowerOk ? '+5.02V / +3.31V Regulated' : !esp5v ? '0.00V VIN (Unpowered MCU)' : 'Partial Rail Feed',
+      details: allPowerOk
+        ? 'ESP32 VIN receives 5V; ACS712 and Songle Relay coil receive 5V; MPU-6050, LM393, and DS18B20 receive regulated 3.3V.'
+        : !esp5v
+        ? 'ESP32 VIN is disconnected from MB102 5V rail. Onboard AMS1117-3.3 regulator has no input voltage and MCU cannot boot.'
+        : 'One or more peripheral transducers lack an active VCC power connection from the breadboard rails.',
+      vivaNote: 'The ESP32 DevKit onboard AMS1117 LDO requires Vin ≥ 4.5V to deliver a ripple-free 3.3V logic rail. Sensors must match their rated voltage to prevent CMOS latch-up.',
+      affectedPins: !esp5v ? ['esp32_vin', 'rail_5v'] : [],
+    });
+
+    // Rule 2: Ground Reference Plane (Common 0V Star GND)
+    const espGnd = isConn('rail_gnd', 'esp32_gnd1') || isConn('rail_gnd', 'esp32_gnd2') || isConn('rail_gnd_bot', 'esp32_gnd1');
+    const acsGnd = isConn('rail_gnd', 'acs_gnd') || isConn('rail_gnd_bot', 'acs_gnd');
+    const mpuGnd = isConn('rail_gnd_bot', 'mpu_gnd') || isConn('rail_gnd', 'mpu_gnd');
+    const lmGnd = isConn('rail_gnd_bot', 'lm_gnd') || isConn('rail_gnd', 'lm_gnd');
+    const dsGnd = isConn('rail_gnd_bot', 'ds_gnd') || isConn('rail_gnd', 'ds_gnd');
+    const relayGnd = isConn('rail_gnd', 'relay_gnd') || isConn('rail_gnd_bot', 'relay_gnd');
+    const allGndOk = espGnd && acsGnd && mpuGnd && lmGnd && dsGnd && relayGnd;
+
+    rules.push({
+      id: 'erc_gnd_net',
+      name: 'Common Ground Return Plane (Star GND Net)',
+      category: 'GROUND',
+      status: allGndOk ? 'PASS' : 'WARN',
+      measuredValue: allGndOk ? '0.00V Reference (Z < 0.05Ω)' : 'Floating Ground Potential',
+      details: allGndOk
+        ? 'All 6 modules and the ESP32 tie to the shared MB102 ground rails, guaranteeing a zero-volt potential reference.'
+        : 'One or more module ground connections are missing. Floating ground references cause ground bounce and false ADC readings.',
+      vivaNote: 'Star grounding prevents return currents of high-current actuators (motor/relay) from inducing parasitic voltage drops across sensitive analog sensor ground traces.',
+      affectedPins: !espGnd ? ['esp32_gnd1', 'rail_gnd'] : [],
+    });
+
+    // Rule 3: Power-to-Ground Short Circuit Isolation
+    let shortFaultPin1: string | null = null;
+    let shortFaultPin2: string | null = null;
     for (const w of wires) {
       const p1 = pinDict[w.fromPinId];
       const p2 = pinDict[w.toPinId];
       if (!p1 || !p2) continue;
-
-      // 1. Direct Power-to-GND Short Circuit
       if ((p1.type === 'POWER' || p1.type === 'HIGH_VOLTAGE') && p2.type === 'GND' && p1.voltage !== '0V') {
-        return {
-          status: 'CRITICAL_HAZARD',
-          title: '💥 Direct Short Circuit to Ground!',
-          description: `Pin ${p1.name} (${p1.voltage}) is directly shorted to ${p2.name}. High inrush current will cause the MB102 regulator to enter thermal shutdown or fuse damage.`,
-          affectedPins: [p1.id, p2.id],
-          vivaNote: 'According to Ohm\'s Law (I = V / R_wire), zero-impedance paths between power rails and ground result in hundreds of amperes of fault current, damaging trace metallization.',
-          shortCircuit: true,
-          overvoltage: false,
-        };
+        shortFaultPin1 = p1.id;
+        shortFaultPin2 = p2.id;
+        break;
       }
       if (p1.type === 'GND' && (p2.type === 'POWER' || p2.type === 'HIGH_VOLTAGE') && p2.voltage !== '0V') {
-        return {
-          status: 'CRITICAL_HAZARD',
-          title: '💥 Direct Short Circuit to Ground!',
-          description: `Pin ${p2.name} (${p2.voltage}) is directly shorted to ${p1.name}. The power supply rail is collapsed.`,
-          affectedPins: [p1.id, p2.id],
-          vivaNote: 'Never connect VCC rails directly to GND tie points. Decoupling capacitors must bridge rails, not zero-ohm jumpers.',
-          shortCircuit: true,
-          overvoltage: false,
-        };
+        shortFaultPin1 = p2.id;
+        shortFaultPin2 = p1.id;
+        break;
       }
+    }
 
-      // 2. High-Voltage Overvoltage to 3.3V Logic
+    rules.push({
+      id: 'erc_short_circuit',
+      name: 'Power-to-Ground Short Circuit Isolation',
+      category: 'POWER',
+      status: shortFaultPin1 ? 'FAIL' : 'PASS',
+      measuredValue: shortFaultPin1 ? '0.00V (Fault Current > 15A)' : 'Z_rail > 100 kΩ (Nominal)',
+      details: shortFaultPin1
+        ? `Direct zero-impedance short circuit detected between ${pinDict[shortFaultPin1]?.name} and ${pinDict[shortFaultPin2!]?.name}! MB102 regulator entering thermal shutdown.`
+        : 'Zero short circuits between supply rails (+5V, +3.3V, +24V) and ground tie points.',
+      vivaNote: 'According to Ohm\'s Law (I = V / R_wire), near-zero resistance paths collapse voltage rails and deliver destructive inrush currents that fuse PCB traces.',
+      affectedPins: shortFaultPin1 ? [shortFaultPin1, shortFaultPin2!] : [],
+    });
+
+    // Rule 4: High-Voltage Optical Isolation (24V Motor Circuit)
+    let hvFaultPin1: string | null = null;
+    let hvFaultPin2: string | null = null;
+    for (const w of wires) {
+      const p1 = pinDict[w.fromPinId];
+      const p2 = pinDict[w.toPinId];
+      if (!p1 || !p2) continue;
       if (p1.voltage === '24V' && (p2.voltage === '3.3V' || p2.component === 'ESP32' || p2.component === 'MPU-6050')) {
-        return {
-          status: 'CRITICAL_HAZARD',
-          title: '🔥 Catastrophic 24V Overvoltage Destruction!',
-          description: `The 24V DC industrial motor line is connected to ${p2.name} (rated max 3.6V). The ESP32 silicon substrate and internal ESD clamp diodes are vaporized!`,
-          affectedPins: [p1.id, p2.id],
-          vivaNote: 'The 24V motor circuit MUST be optically isolated from the 3.3V MCU via the EL817 optocoupler and Songle relay contacts. Never bridge low-voltage logic to the inductive motor supply.',
-          shortCircuit: false,
-          overvoltage: true,
-        };
+        hvFaultPin1 = p1.id;
+        hvFaultPin2 = p2.id;
+        break;
+      }
+      if (p2.voltage === '24V' && (p1.voltage === '3.3V' || p1.component === 'ESP32' || p1.component === 'MPU-6050')) {
+        hvFaultPin1 = p2.id;
+        hvFaultPin2 = p1.id;
+        break;
       }
     }
 
-    // Check for Inverted I2C Bus (SDA plugged into SCL or vice-versa)
-    const mpuSdaWire = wires.find(w => (w.fromPinId === 'mpu_sda' || w.toPinId === 'mpu_sda'));
-    const mpuSclWire = wires.find(w => (w.fromPinId === 'mpu_scl' || w.toPinId === 'mpu_scl'));
+    rules.push({
+      id: 'erc_hv_isolation',
+      name: 'Galvanic Optical Isolation Barrier (24V Motor Loop)',
+      category: 'ISOLATION',
+      status: hvFaultPin1 ? 'FAIL' : 'PASS',
+      measuredValue: hvFaultPin1 ? '24.0V DC (Destructive Stress)' : '2.1 kVRMS Optical Barrier (OK)',
+      details: hvFaultPin1
+        ? `CATASTROPHIC HAZARD: 24V industrial supply line is bridged directly to ${pinDict[hvFaultPin2!]?.name} (rated max 3.6V). Silicon substrate and ESD clamp diodes are vaporized!`
+        : 'The 24V RS-775 motor loop is fully isolated from the 3.3V MCU via the EL817 optoisolator and Songle relay contacts.',
+      vivaNote: 'Inductive back-EMF spikes from DC motors can exceed 60V upon sudden cutoff (V = -L di/dt). Optical isolation barriers prevent motor transients from coupling into digital logic.',
+      affectedPins: hvFaultPin1 ? [hvFaultPin1, hvFaultPin2!] : [],
+    });
 
-    if (mpuSdaWire && (mpuSdaWire.fromPinId === 'esp32_gpio22' || mpuSdaWire.toPinId === 'esp32_gpio22')) {
-      return {
-        status: 'WARNING',
-        title: '⚠ I2C Bus Inverted: SDA Swapped with SCL',
-        description: 'MPU-6050 SDA is connected to GPIO 22 (Clock) instead of GPIO 21 (Data). The I2C state machine cannot assert START condition or read ACK bit.',
-        affectedPins: ['mpu_sda', 'esp32_gpio22'],
-        vivaNote: 'ESP32 Wire.h default hardware I2C pins are SDA=GPIO21 and SCL=GPIO22. Swapping them holds the master clock line low, causing bus deadlock (NACK 0x68).',
-        shortCircuit: false,
-        overvoltage: false,
-      };
-    }
+    // Rule 5: I2C Serial Protocol Net Integrity (MPU-6050 Bus)
+    const mpuSdaWire = wires.find(w => w.fromPinId === 'mpu_sda' || w.toPinId === 'mpu_sda');
+    const mpuSclWire = wires.find(w => w.fromPinId === 'mpu_scl' || w.toPinId === 'mpu_scl');
+    const sdaInverted = mpuSdaWire && (mpuSdaWire.fromPinId === 'esp32_gpio22' || mpuSdaWire.toPinId === 'esp32_gpio22');
+    const sclInverted = mpuSclWire && (mpuSclWire.fromPinId === 'esp32_gpio21' || mpuSclWire.toPinId === 'esp32_gpio21');
+    const i2cNominal = isConn('mpu_sda', 'esp32_gpio21') && isConn('mpu_scl', 'esp32_gpio22');
 
-    // Check for Missing OneWire Pull-up Resistor
+    rules.push({
+      id: 'erc_i2c_bus',
+      name: 'I2C Serial Bus Net Integrity (MPU-6050 @ 0x68)',
+      category: 'PROTOCOL',
+      status: sdaInverted || sclInverted ? 'FAIL' : i2cNominal ? 'PASS' : 'WARN',
+      measuredValue: sdaInverted || sclInverted ? 'Bus Inverted (NACK 0x68)' : i2cNominal ? '400 kHz Fast I2C (ACK 0x68)' : 'Bus Disconnected',
+      details: sdaInverted || sclInverted
+        ? 'MPU-6050 SDA is connected to GPIO 22 (Clock) instead of GPIO 21 (Data). The I2C state machine cannot assert START condition or read ACK bit.'
+        : i2cNominal
+        ? 'Hardware I2C lines correctly mapped: SDA=GPIO21, SCL=GPIO22. Ready for 6-axis vibration telemetry at 400kHz.'
+        : 'MPU-6050 I2C data or clock line is not connected to the ESP32 microcontroller.',
+      vivaNote: 'ESP32 Wire.h default hardware I2C peripheral uses SDA=GPIO21 and SCL=GPIO22. Inverting lines holds clock low, causing bus deadlock.',
+      affectedPins: sdaInverted ? ['mpu_sda', 'esp32_gpio22'] : [],
+    });
+
+    // Rule 6: Dallas 1-Wire Open-Drain Line & 4.7kΩ Pull-Up Resistor
     const hasPullup = wires.some(w => w.fromPinId === 'pullup_res' || w.toPinId === 'pullup_res');
     const hasDqWire = wires.some(w => w.fromPinId === 'ds_dq' || w.toPinId === 'ds_dq');
+    const oneWireNominal = isConn('ds_dq', 'pullup_res') && isConn('pullup_res', 'esp32_gpio4');
 
-    if (hasDqWire && !hasPullup) {
+    rules.push({
+      id: 'erc_onewire_pullup',
+      name: 'Dallas 1-Wire Bus & 4.7kΩ Pull-Up Resistor (DS18B20)',
+      category: 'PROTOCOL',
+      status: hasDqWire && !hasPullup ? 'FAIL' : oneWireNominal ? 'PASS' : 'WARN',
+      measuredValue: hasDqWire && !hasPullup ? 'Floating Line (Missing 4.7kΩ)' : oneWireNominal ? '4.7kΩ Pull-Up to 3.3V (OK)' : 'Disconnected',
+      details: hasDqWire && !hasPullup
+        ? 'DS18B20 1-Wire DQ line is connected to MCU without a pull-up resistor to 3.3V. The open-drain bus cannot pull HIGH, yielding default -127°C error.'
+        : oneWireNominal
+        ? 'DS18B20 DQ open-drain line terminated with 4.7kΩ pull-up resistor on GPIO4. 12-bit digital temperature conversion nominal.'
+        : 'DS18B20 temperature probe DQ data line is disconnected.',
+      vivaNote: 'Dallas 1-Wire protocol operates in open-collector mode. Devices only pull line LOW; a 4.7kΩ pull-up resistor is strictly required to restore logic HIGH between bit slots.',
+      affectedPins: hasDqWire && !hasPullup ? ['ds_dq', 'esp32_gpio4'] : [],
+    });
+
+    // Rule 7: Optical Tachometer Interrupt Pin (LM393 D0)
+    const tachNominal = isConn('lm_d0', 'esp32_gpio18');
+    rules.push({
+      id: 'erc_tach_interrupt',
+      name: 'Optical Tachometer Interrupt Pin (LM393 D0)',
+      category: 'SIGNAL',
+      status: tachNominal ? 'PASS' : 'WARN',
+      measuredValue: tachNominal ? '3.3V Square Wave (GPIO18 INT)' : 'Disconnected',
+      details: tachNominal
+        ? 'LM393 optical gate digital output D0 connected to ESP32 hardware interrupt GPIO 18. Microsecond pulse capture enabled.'
+        : 'LM393 tachometer D0 output is not connected to ESP32 GPIO 18.',
+      vivaNote: 'Hardware timer interrupts on Core 0 capture optical slotted disc transitions without CPU polling latency, calculating accurate RPM = (pulse_freq / 8) * 60.',
+      affectedPins: !tachNominal ? ['lm_d0', 'esp32_gpio18'] : [],
+    });
+
+    // Rule 8: ACS712 Current Transducer Analog Net (GPIO 34 ADC1)
+    const acsNominal = isConn('acs_out', 'esp32_gpio34');
+    rules.push({
+      id: 'erc_adc_analog',
+      name: 'Current Transducer Analog Net (ACS712 OUT)',
+      category: 'SIGNAL',
+      status: acsNominal ? 'PASS' : 'WARN',
+      measuredValue: acsNominal ? '0-3.3V Analog (ADC1_CH6)' : 'Disconnected',
+      details: acsNominal
+        ? 'ACS712 linear 66 mV/A analog output connected to ESP32 ADC1 channel 6 (GPIO 34). Immune to Wi-Fi RF driver contention.'
+        : 'ACS712 analog output OUT is not connected to ESP32 GPIO 34.',
+      vivaNote: 'GPIO 34 belongs to ADC1. ADC2 is multiplexed with Wi-Fi RF registers; routing analog signals to ADC1 prevents telemetry dropouts during wireless packet transmission.',
+      affectedPins: !acsNominal ? ['acs_out', 'esp32_gpio34'] : [],
+    });
+
+    return rules;
+  }, [wires, pinDict]);
+
+  // ─── ELECTRICAL RULE CHECK (ERC) & MISWIRING DETECTION ENGINE ──────────────
+  const diagnosis: WiringDiagnosis = useMemo(() => {
+    const hasCritical = ercRules.some(r => r.status === 'FAIL');
+    const hasWarn = ercRules.some(r => r.status === 'WARN');
+
+    if (hasCritical) {
+      const critRule = ercRules.find(r => r.status === 'FAIL')!;
       return {
-        status: 'WARNING',
-        title: '⚠ Floating OneWire Line: Missing 4.7kΩ Pull-Up',
-        description: 'DS18B20 1-Wire DQ line is connected to the MCU without a pull-up resistor to 3.3V. The open-drain bus cannot pull HIGH, yielding -127°C reading.',
-        affectedPins: ['ds_dq', 'esp32_gpio4'],
-        vivaNote: 'Dallas 1-Wire protocol operates in open-collector mode. Devices only pull the line LOW; a 4.7kΩ pull-up resistor is strictly required to restore logic HIGH.',
-        shortCircuit: false,
-        overvoltage: false,
+        status: 'CRITICAL_HAZARD',
+        title: critRule.id === 'erc_short_circuit'
+          ? '💥 Direct Short Circuit to Ground!'
+          : critRule.id === 'erc_hv_isolation'
+          ? '🔥 Catastrophic 24V Overvoltage Destruction!'
+          : `💥 Critical Rule Failure: ${critRule.name}`,
+        description: critRule.details,
+        affectedPins: critRule.affectedPins || [],
+        vivaNote: critRule.vivaNote,
+        shortCircuit: critRule.id === 'erc_short_circuit',
+        overvoltage: critRule.id === 'erc_hv_isolation',
       };
     }
 
-    // Check if essential power rails are connected
-    const espPowered = wires.some(w => (w.fromPinId === 'rail_5v' && w.toPinId === 'esp32_vin') || (w.fromPinId === 'esp32_vin' && w.toPinId === 'rail_5v'));
-    if (!espPowered) {
+    if (hasWarn) {
+      const warnRule = ercRules.find(r => r.status === 'WARN')!;
       return {
         status: 'WARNING',
-        title: '⚠ ESP32 VIN Power Disconnected',
-        description: 'The ESP32 microcontroller has no 5V VIN power feed from the MB102 regulator. The MCU cannot boot.',
-        affectedPins: ['esp32_vin', 'rail_5v'],
-        vivaNote: 'The onboard AMS1117-3.3 LDO on the ESP32 DevKit requires at least 4.5V on the VIN pin to regulate down to stable 3.3V.',
+        title: `⚠ Electrical Rule Warning: ${warnRule.name}`,
+        description: warnRule.details,
+        affectedPins: warnRule.affectedPins || [],
+        vivaNote: warnRule.vivaNote,
         shortCircuit: false,
         overvoltage: false,
       };
@@ -261,14 +432,14 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
 
     return {
       status: 'NOMINAL',
-      title: '✓ All Electrical Nets Valid & Nominal (22/22 Connections)',
+      title: '✓ All Electrical Rules Verified & Nominal (8/8 Checks Passed)',
       description: 'Power rails (5V, 3.3V, 24V), I2C bus (0x68), ADC input (GPIO34), and 1-Wire (GPIO4 with 4.7kΩ) are correctly mapped without short circuits or overvoltage risks.',
       affectedPins: [],
       vivaNote: 'Galvanic isolation between the 24V motor circuit and the 3.3V digital logic is strictly maintained via the optocoupler barrier.',
       shortCircuit: false,
       overvoltage: false,
     };
-  }, [wires, pinDict]);
+  }, [ercRules]);
 
   // Inform parent of status
   useEffect(() => {
@@ -359,6 +530,23 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
     setSelectedWireId(null);
   };
 
+  // Automated Electrical Rule Check (ERC) Test Runner
+  const startERCTest = () => {
+    setIsTestingERC(true);
+    setTestProgress(15);
+    setTestRunActive(true);
+
+    setTimeout(() => setTestProgress(45), 200);
+    setTimeout(() => setTestProgress(75), 450);
+    setTimeout(() => setTestProgress(92), 700);
+    setTimeout(() => {
+      setTestProgress(100);
+      setIsTestingERC(false);
+      setIsERCModalOpen(true);
+      setTimeout(() => setTestRunActive(false), 2000);
+    }, 950);
+  };
+
   // Generate cubic bezier curve path between two pins
   const getWirePath = (x1: number, y1: number, x2: number, y2: number) => {
     const dx = x2 - x1;
@@ -410,15 +598,36 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
             </button>
           )}
 
+          {/* Direct link to open ERC Report */}
           <button
-            onClick={() => {
-              setTestRunActive(true);
-              setTimeout(() => setTestRunActive(false), 2000);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-md transition-all hover:scale-102"
+            onClick={() => setIsERCModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-sm"
+            title="Inspect Electrical Rule Check Verification Report"
           >
-            <Play className="w-3.5 h-3.5" />
-            <span>Test Circuit ERC</span>
+            <FileCheck2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span>ERC Report ({ercRules.filter(r => r.status === 'PASS').length}/8)</span>
+          </button>
+
+          <button
+            onClick={startERCTest}
+            disabled={isTestingERC}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+              isTestingERC
+                ? 'bg-cyan-600 text-white animate-pulse'
+                : 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white hover:scale-102'
+            }`}
+          >
+            {isTestingERC ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Testing Nets ({testProgress}%)...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5" />
+                <span>Test Circuit ERC</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -440,15 +649,24 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
           )}
         </div>
-        <div className="space-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <span className={`font-bold text-sm ${
-              diagnosis.status === 'CRITICAL_HAZARD' ? 'text-rose-300' :
-              diagnosis.status === 'WARNING' ? 'text-amber-300' : 'text-emerald-300'
-            }`}>
-              {diagnosis.title}
-            </span>
-            <span className="text-[10px] text-slate-400 font-normal">({wires.length} wires routed)</span>
+        <div className="space-y-1 text-xs flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`font-bold text-sm ${
+                diagnosis.status === 'CRITICAL_HAZARD' ? 'text-rose-300' :
+                diagnosis.status === 'WARNING' ? 'text-amber-300' : 'text-emerald-300'
+              }`}>
+                {diagnosis.title}
+              </span>
+              <span className="text-[10px] text-slate-400 font-normal">({wires.length} wires routed)</span>
+            </div>
+            <button
+              onClick={() => setIsERCModalOpen(true)}
+              className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors underline underline-offset-2"
+            >
+              <span>View ERC Report</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
           </div>
           <p className="text-slate-300 text-[11px] leading-relaxed">{diagnosis.description}</p>
           <div className="text-[10px] text-slate-400 bg-black/40 p-2 rounded-lg border border-slate-800/80 mt-1">
@@ -610,6 +828,18 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                   strokeWidth={3}
                   strokeLinecap="round"
                 />
+                {/* Active ERC testing scanner beam */}
+                {isTestingERC && (
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth={4.5}
+                    strokeDasharray="8 6"
+                    className="animate-pulse"
+                    filter="url(#sparkGlow)"
+                  />
+                )}
                 {/* Connector terminal boots */}
                 <circle cx={p1.x} cy={p1.y} r="3.5" fill="#0f172a" stroke={w.color} strokeWidth="1.5" />
                 <circle cx={p2.x} cy={p2.y} r="3.5" fill="#0f172a" stroke={w.color} strokeWidth="1.5" />
@@ -630,7 +860,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
           )}
 
           {/* ─── SHORT CIRCUIT / OVERVOLTAGE SPARK ANIMATIONS ─── */}
-          {(diagnosis.shortCircuit || diagnosis.overvoltage || testRunActive) && (
+          {(diagnosis.shortCircuit || diagnosis.overvoltage) && (
             diagnosis.affectedPins.map(pinId => {
               const p = pinDict[pinId];
               if (!p) return null;
@@ -640,6 +870,23 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                   <circle cx="0" cy="0" r="7" fill="#fbbf24" filter="url(#sparkGlow)" />
                   <text x="12" y="-6" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">
                     {diagnosis.shortCircuit ? '⚡ SHORT!' : '🔥 24V BURNOUT!'}
+                  </text>
+                </g>
+              );
+            })
+          )}
+
+          {/* ─── NOMINAL TEST PING INDICATOR (DURING ERC TEST RUN) ─── */}
+          {testRunActive && diagnosis.status === 'NOMINAL' && (
+            ['esp32_vin', 'rail_5v', 'rail_3v3', 'esp32_gpio21', 'esp32_gpio4', 'esp32_gpio34'].map(pinId => {
+              const p = pinDict[pinId];
+              if (!p) return null;
+              return (
+                <g key={`test_ping_${pinId}`} transform={`translate(${p.x}, ${p.y})`}>
+                  <circle cx="0" cy="0" r="12" fill="#10b981" opacity="0.35" className="animate-ping" />
+                  <circle cx="0" cy="0" r="4.5" fill="#34d399" filter="url(#sparkGlow)" />
+                  <text x="8" y="-5" fill="#34d399" fontSize="7.5" fontWeight="bold" fontFamily="monospace">
+                    ✓ PASS
                   </text>
                 </g>
               );
@@ -716,6 +963,168 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
           )}
         </div>
       </div>
+
+      {/* ─── ELECTRICAL RULE CHECK (ERC) DIAGNOSTIC INSPECTION MODAL ─── */}
+      {isERCModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-3xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden font-mono">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/80">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl border ${
+                  diagnosis.status === 'CRITICAL_HAZARD'
+                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                    : diagnosis.status === 'WARNING'
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-white text-sm tracking-wide">
+                      Electrical Rule Check (ERC) Diagnostic Report
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      diagnosis.status === 'CRITICAL_HAZARD'
+                        ? 'bg-rose-950 text-rose-300 border-rose-800'
+                        : diagnosis.status === 'WARNING'
+                        ? 'bg-amber-950 text-amber-300 border-amber-800'
+                        : 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                    }`}>
+                      {ercRules.filter(r => r.status === 'PASS').length}/8 RULES PASSED
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Automated static and dynamic netlist inspection across 28 breadboard tie-points
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsERCModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body: Rule Results List */}
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
+              {/* Overall Summary Banner */}
+              <div className={`p-3 rounded-xl border flex items-start gap-3 ${
+                diagnosis.status === 'CRITICAL_HAZARD'
+                  ? 'bg-rose-950/60 border-rose-800 text-rose-200'
+                  : diagnosis.status === 'WARNING'
+                  ? 'bg-amber-950/60 border-amber-800 text-amber-200'
+                  : 'bg-emerald-950/60 border-emerald-800 text-emerald-200'
+              }`}>
+                {diagnosis.status === 'CRITICAL_HAZARD' ? (
+                  <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                ) : diagnosis.status === 'WARNING' ? (
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-bold text-sm">{diagnosis.title}</div>
+                  <div className="text-[11px] mt-0.5 text-slate-300">{diagnosis.description}</div>
+                </div>
+              </div>
+
+              {/* 8 Rule Cards */}
+              <div className="space-y-2">
+                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">
+                  Verified Electrical Nets (8 System Checks):
+                </div>
+                {ercRules.map((rule, idx) => (
+                  <div
+                    key={rule.id}
+                    className={`p-3 rounded-xl border transition-all ${
+                      rule.status === 'FAIL'
+                        ? 'bg-rose-950/30 border-rose-800/80'
+                        : rule.status === 'WARN'
+                        ? 'bg-amber-950/30 border-amber-800/80'
+                        : 'bg-slate-950/60 border-slate-800'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-800/60">
+                      <div className="flex items-center gap-2">
+                        {rule.status === 'FAIL' ? (
+                          <AlertOctagon className="w-4 h-4 text-rose-400" />
+                        ) : rule.status === 'WARN' ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-400" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        )}
+                        <span className="font-bold text-white text-[12px]">
+                          {idx + 1}. {rule.name}
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                          {rule.category}
+                        </span>
+                      </div>
+                      <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
+                        rule.status === 'FAIL'
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                          : rule.status === 'WARN'
+                          ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                      }`}>
+                        {rule.measuredValue}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                      {rule.details}
+                    </p>
+
+                    <div className="mt-2 text-[10px] text-slate-400 bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                      <strong className="text-cyan-400">Viva Defense Note: </strong>
+                      <span>{rule.vivaNote}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 border-t border-slate-800 bg-slate-950">
+              <div className="text-[11px] text-slate-400">
+                Routed Wires: <strong className="text-white">{wires.length}</strong> · Active Tie-Points: <strong className="text-white">28</strong>
+              </div>
+              <div className="flex items-center gap-2">
+                {diagnosis.status !== 'NOMINAL' && (
+                  <button
+                    onClick={() => {
+                      loadPreset('nominal');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 hover:bg-cyan-900 transition-colors"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset to Nominal</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsERCModalOpen(false);
+                    startERCTest();
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Re-Run ERC Diagnostic</span>
+                </button>
+                <button
+                  onClick={() => setIsERCModalOpen(false)}
+                  className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
