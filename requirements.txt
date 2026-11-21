@@ -8,12 +8,16 @@ pydantic>=2.5.0
 pydantic-settings>=2.1.0
 python-dotenv>=1.0.0
 
-# Database & Storage
+# Database & Storage (Supports PostgreSQL/TimescaleDB with psycopg3/psycopg2 and local SQLite)
 sqlalchemy>=2.0.25
+psycopg[binary]>=3.1.18
 psycopg2-binary>=2.9.9
 
 # Messaging & MQTT
 paho-mqtt>=2.1.0
+
+# Hardware & Serial Interface
+pyserial>=3.5
 
 # Machine Learning & Scientific Computing
 torch>=2.0.0
