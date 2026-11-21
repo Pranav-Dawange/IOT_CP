@@ -41,7 +41,8 @@ export const App: React.FC = () => {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState<boolean>(false);
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<PageRoute>(() => {
-    const hash = window.location.hash.replace('#', '') as PageRoute;
+    const rawHash = window.location.hash.replace('#', '');
+    const hash = rawHash === 'orchestration' ? 'flow' : (rawHash as PageRoute);
     return ['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash) ? hash : 'fleet';
   });
   const [personaMode, setPersonaMode] = useState<'operator' | 'engineer'>('operator');
@@ -85,7 +86,8 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '') as PageRoute;
+      const rawHash = window.location.hash.replace('#', '');
+      const hash = rawHash === 'orchestration' ? 'flow' : (rawHash as PageRoute);
       if (['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash)) {
         setCurrentPage(hash);
       }
