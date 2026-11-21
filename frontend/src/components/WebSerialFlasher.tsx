@@ -22,6 +22,7 @@ export interface WebSerialFlasherProps {
     rpm: number;
     currentA: number;
     tempC: number;
+    airTempC?: number;
     vibrationG: number;
     relayState: boolean;
   }) => void;
@@ -80,6 +81,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
     rpm: 0,
     currentA: 0,
     tempC: 25.0,
+    airTempC: 25.0,
     vibrationG: 0.05,
     relayClosed: true,
     packetCount: 0,
@@ -130,11 +132,12 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
   const parseSerialLine = useCallback((line: string) => {
     appendLog('IN', line);
 
-    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 VIB=1.22 RELAY=1
+    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 AIR_TEMP=25.0 VIB=1.22 RELAY=1
     if (line.includes('[HW_TELEM]') || line.includes('[TELEMETRY]')) {
       const rpmMatch = line.match(/RPM=([\d.]+)/i);
       const currMatch = line.match(/(?:CURR|CURRENT)=([\d.]+)/i);
-      const tempMatch = line.match(/TEMP=([\d.]+)/i);
+      const tempMatch = line.match(/(?:STATOR_TEMP|TEMP)=([\d.]+)/i);
+      const airMatch = line.match(/(?:AIR_TEMP|AIR|T_AIR)=([\d.]+)/i);
       const vibMatch = line.match(/(?:VIB|VIBRATION)=([\d.]+)/i);
       const relayMatch = line.match(/RELAY=(\d+)/i);
 
@@ -142,6 +145,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         rpm: rpmMatch ? parseFloat(rpmMatch[1]) : hardwareTelemetry.rpm,
         currentA: currMatch ? parseFloat(currMatch[1]) : hardwareTelemetry.currentA,
         tempC: tempMatch ? parseFloat(tempMatch[1]) : hardwareTelemetry.tempC,
+        airTempC: airMatch ? parseFloat(airMatch[1]) : hardwareTelemetry.airTempC,
         vibrationG: vibMatch ? parseFloat(vibMatch[1]) : hardwareTelemetry.vibrationG,
         relayClosed: relayMatch ? relayMatch[1] === '1' : hardwareTelemetry.relayClosed,
       };
@@ -153,12 +157,13 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
         lastPacketTime: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       }));
 
-      // Pipe to parent dashboard
+      // Pipe all 5 sensor readings to parent dashboard
       if (onLiveHardwareTelemetry) {
         onLiveHardwareTelemetry({
           rpm: parsed.rpm,
           currentA: parsed.currentA,
           tempC: parsed.tempC,
+          airTempC: parsed.airTempC,
           vibrationG: parsed.vibrationG,
           relayState: parsed.relayClosed,
         });
@@ -281,9 +286,10 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       const baseRpm = isBenchPowered ? 1650 + Math.round((Math.random() - 0.5) * 80) : 0;
       const baseCurr = isBenchPowered ? parseFloat((1.82 + (Math.random() - 0.5) * 0.15).toFixed(2)) : 0;
       const baseTemp = isBenchPowered ? parseFloat((34.2 + (Math.random() - 0.5) * 0.4).toFixed(1)) : 25.0;
+      const baseAirTemp = isBenchPowered ? parseFloat((24.8 + (Math.random() - 0.5) * 0.3).toFixed(1)) : 22.0;
       const baseVib = isBenchPowered ? parseFloat((1.24 + (Math.random() - 0.5) * 0.08).toFixed(2)) : 0.04;
 
-      const telemLine = `[HW_TELEM] RPM=${baseRpm} CURR=${baseCurr} TEMP=${baseTemp} VIB=${baseVib} RELAY=1`;
+      const telemLine = `[HW_TELEM] RPM=${baseRpm} CURR=${baseCurr} TEMP=${baseTemp} AIR_TEMP=${baseAirTemp} VIB=${baseVib} RELAY=1`;
       parseSerialLine(telemLine);
     }, 1200);
   };
@@ -780,10 +786,10 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       {/* ─── TAB 3: HARDWARE TELEMETRY STREAM ─── */}
       {activeTab === 'telemetry' && (
         <div className="space-y-3 text-xs">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {/* Live Hardware RPM */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Live Hardware RPM</div>
+              <div className="text-[10px] text-slate-500">Live Spindle Speed</div>
               <div className="text-xl font-bold text-orange-400 mt-1">
                 {hardwareTelemetry.rpm} <span className="text-xs text-slate-500">RPM</span>
               </div>
@@ -792,29 +798,38 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
 
             {/* Live Current */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Hall Current (ACS712)</div>
+              <div className="text-[10px] text-slate-500">Armature Current</div>
               <div className="text-xl font-bold text-emerald-400 mt-1">
                 {hardwareTelemetry.currentA.toFixed(2)} <span className="text-xs text-slate-500">A</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">GPIO34 ADC1_CH6</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">ACS712 GPIO34 ADC1</div>
             </div>
 
-            {/* Live Temp */}
+            {/* Live Stator Temp */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Stator Temp (DS18B20)</div>
+              <div className="text-[10px] text-slate-500">Process Stator Temp</div>
               <div className="text-xl font-bold text-purple-400 mt-1">
                 {hardwareTelemetry.tempC.toFixed(1)} <span className="text-xs text-slate-500">°C</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">1-Wire GPIO4 (4.7kΩ)</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">DS18B20 1-Wire (GPIO5)</div>
+            </div>
+
+            {/* Live Ambient Air Temp */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="text-[10px] text-slate-500">Ambient Air Temp</div>
+              <div className="text-xl font-bold text-cyan-400 mt-1">
+                {hardwareTelemetry.airTempC.toFixed(1)} <span className="text-xs text-slate-500">°C</span>
+              </div>
+              <div className="text-[9px] text-slate-500 mt-0.5">DHT22 Single-Bus (GPIO19)</div>
             </div>
 
             {/* Live Vibration */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500">Vibration (MPU-6050)</div>
+              <div className="text-[10px] text-slate-500">Bearing Vibration</div>
               <div className="text-xl font-bold text-blue-400 mt-1">
                 {hardwareTelemetry.vibrationG.toFixed(2)} <span className="text-xs text-slate-500">g RMS</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">I2C 0x68 (SDA:21/SCL:22)</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">MPU-6050 I2C (GPIO21/22)</div>
             </div>
           </div>
 
