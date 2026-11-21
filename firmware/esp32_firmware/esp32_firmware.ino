@@ -1,48 +1,54 @@
-/**
- * Smart Industrial Edge Node — ESP32 Dual-Core FreeRTOS Firmware
- * Course Project: Industrial Asset Condition Monitoring & Predictive Safety Cutoff
- * Target MCU: ESP-WROOM-32 DevKit V1 (240MHz Xtensa Dual-Core)
- *
- * SENSOR TOPOLOGY & PIN ALLOCATION:
- * - Current Sensor:        ACS712-30A via 10k/15k divider -> GPIO 34 (ADC1_CH6)
- * - Spindle Tachometer:    LM393 Optical IR Comparator   -> GPIO 18 (Hardware Interrupt RISING)
- * - Process Temperature:   DS18B20 1-Wire Thermal Probe   -> GPIO 4  (4.7k Pullup)
- * - Ambient Air Temp & RH: DHT22 Digital Sensor           -> GPIO 19 (10k Pullup)
- * - Automated Cutoff:      Songle 5V Optoisolated Relay   -> GPIO 26 (Active-LOW Trip)
- * - Local Display & IMU:   SSD1306 OLED & MPU-6050        -> GPIO 21 (SDA), GPIO 22 (SCL)
- *
- * CONCURRENCY MODEL (Dual-Core FreeRTOS):
- * - Core 0: High-frequency ADC sampling, EMA filter, <10ms emergency cutoff.
- * - Core 1: Non-blocking sensor polling, USB WebSerial emission, and MQTT ingestion.
- */
+// ==============================================================================
+// Smart Industrial Edge Node - ESP32 Dual-Core FreeRTOS Firmware
+// Course Project: Industrial Asset Condition Monitoring & Predictive Safety
+// Cutoff Target MCU: ESP-WROOM-32 DevKit V1 (240MHz Xtensa Dual-Core)
+//
+// SENSOR TOPOLOGY & PIN ALLOCATION:
+// - Current Sensor:        ACS712-30A via 10k/15k divider -> GPIO 34 (ADC1_CH6)
+// - Spindle Tachometer:    LM393 Optical IR Comparator   -> GPIO 18 (Hardware
+// Interrupt RISING)
+// - Process Temperature:   DS18B20 1-Wire Thermal Probe   -> GPIO 4  (4.7k
+// Pullup)
+// - Ambient Air Temp & RH: DHT22 Digital Sensor           -> GPIO 19 (10k
+// Pullup)
+// - Automated Cutoff:      Songle 5V Optoisolated Relay   -> GPIO 26
+// (Active-LOW Trip)
+// - Local Display & IMU:   SSD1306 OLED & MPU-6050        -> GPIO 21 (SDA),
+// GPIO 22 (SCL)
+//
+// CONCURRENCY MODEL (Dual-Core FreeRTOS):
+// - Core 0: High-frequency ADC sampling, EMA filter, <10ms emergency cutoff.
+// - Core 1: Non-blocking sensor polling, USB WebSerial emission, and MQTT
+// ingestion.
+// ==============================================================================
 
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <Wire.h>
 #include <Adafruit_SSD1306.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include <DHT.h>
 #include <ArduinoJson.h>
+#include <DHT.h>
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include <PubSubClient.h>
+#include <WiFi.h>
+#include <Wire.h>
 
 // Hardware Pin Definitions
-#define PIN_ACS712_ADC     34   // ADC1_CH6 (12-bit Current ADC)
-#define PIN_LM393_INT      18   // Hardware Interrupt (Spindle Speed)
-#define PIN_DS18B20_DQ      4   // Dallas 1-Wire Stator Temperature
-#define PIN_DHT22_DATA     19   // Single-Bus Digital (Ambient Air Temp)
-#define PIN_RELAY_CUTOFF   26   // Active-LOW Songle Relay Actuator
-#define PIN_I2C_SDA        21   // OLED & MPU-6050 I2C Data
-#define PIN_I2C_SCL        22   // OLED & MPU-6050 I2C Clock
-#define MPU6050_ADDR     0x68   // MPU-6050 Default I2C Address
+#define PIN_ACS712_ADC 34   // ADC1_CH6 (12-bit Current ADC)
+#define PIN_LM393_INT 18    // Hardware Interrupt (Spindle Speed)
+#define PIN_DS18B20_DQ 4    // Dallas 1-Wire Stator Temperature
+#define PIN_DHT22_DATA 19   // Single-Bus Digital (Ambient Air Temp)
+#define PIN_RELAY_CUTOFF 26 // Active-LOW Songle Relay Actuator
+#define PIN_I2C_SDA 21      // OLED & MPU-6050 I2C Data
+#define PIN_I2C_SCL 22      // OLED & MPU-6050 I2C Clock
+#define MPU6050_ADDR 0x68   // MPU-6050 Default I2C Address
 
 // Network & Broker Configuration
-const char* WIFI_SSID = "Industrial_IoT_Lab";
-const char* WIFI_PASS = "Factory4.0Secure";
-const char* MQTT_SERVER = "192.168.1.100";
-const int   MQTT_PORT = 1883;
-const char* MQTT_CLIENT_ID = "ESP32_Asset_01";
-const char* TOPIC_TELEMETRY = "factory/line_A/asset_01/telemetry";
-const char* TOPIC_COMMAND   = "factory/line_A/asset_01/cmd";
+const char *WIFI_SSID = "Industrial_IoT_Lab";
+const char *WIFI_PASS = "Factory4.0Secure";
+const char *MQTT_SERVER = "192.168.1.100";
+const int MQTT_PORT = 1883;
+const char *MQTT_CLIENT_ID = "ESP32_Asset_01";
+const char *TOPIC_TELEMETRY = "factory/line_A/asset_01/telemetry";
+const char *TOPIC_COMMAND = "factory/line_A/asset_01/cmd";
 
 // Sensor & Peripheral Drivers
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
@@ -96,13 +102,15 @@ float readMpuVibrationRms() {
   float gy = ay / 16384.0f;
   float gz = (az / 16384.0f) - 1.0f; // Subtract static 1g gravitational bias
 
-  float instantaneousRms = sqrt(gx * gx + gy * gy + gz * gz) * 9.80665f; // m/s^2
-  if (instantaneousRms < 0.05f) instantaneousRms = 0.05f;
+  float instantaneousRms =
+      sqrt(gx * gx + gy * gy + gz * gz) * 9.80665f; // m/s^2
+  if (instantaneousRms < 0.05f)
+    instantaneousRms = 0.05f;
   return instantaneousRms;
 }
 
 // Downlink MQTT Command Callback (Closes Cyber-Physical Control Loop)
-void onMqttCommand(char* topic, byte* payload, unsigned int length) {
+void onMqttCommand(char *topic, byte *payload, unsigned int length) {
   StaticJsonDocument<256> cmdDoc;
   DeserializationError err = deserializeJson(cmdDoc, payload, length);
   if (err) {
@@ -110,7 +118,7 @@ void onMqttCommand(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  const char* cmd = cmdDoc["command"] | "";
+  const char *cmd = cmdDoc["command"] | "";
   if (strcmp(cmd, "TRIP_RELAY") == 0 || strcmp(cmd, "EMERGENCY_STOP") == 0) {
     digitalWrite(PIN_RELAY_CUTOFF, LOW); // Active-LOW open
     relayTripped = true;
@@ -127,7 +135,8 @@ void onMqttCommand(char* topic, byte* payload, unsigned int length) {
 
 // Wi-Fi Connection Manager
 void connectWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+  if (WiFi.status() == WL_CONNECTED)
+    return;
   Serial.print("[WIFI] Connecting to ");
   Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
@@ -142,13 +151,15 @@ void connectWiFi() {
     Serial.print("\n[WIFI] Connected. IP: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("\n[WIFI] Connection timeout. Operating in standalone serial mode.");
+    Serial.println(
+        "\n[WIFI] Connection timeout. Operating in standalone serial mode.");
   }
 }
 
 // MQTT Reconnection Manager
 void reconnectMqtt() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED)
+    return;
   if (!mqttClient.connected()) {
     Serial.print("[MQTT] Connecting to broker...");
     if (mqttClient.connect(MQTT_CLIENT_ID)) {
@@ -174,13 +185,15 @@ void TaskSensorAcquisition(void *pvParameters) {
     float instantCurrent = abs((vout - 2.50f) / 0.066f);
 
     // 2. Exponential Moving Average (EMA)
-    filteredCurrent = (EMA_ALPHA * instantCurrent) + ((1.0f - EMA_ALPHA) * filteredCurrent);
+    filteredCurrent =
+        (EMA_ALPHA * instantCurrent) + ((1.0f - EMA_ALPHA) * filteredCurrent);
 
     // 3. Fast Overcurrent Cutoff (<10ms reaction)
     if (filteredCurrent > 4.50f && !relayTripped) {
       digitalWrite(PIN_RELAY_CUTOFF, LOW);
       relayTripped = true;
-      Serial.println("[ISR_ALERT] Current Overload (>4.5A)! Emergency Cutoff Active.");
+      Serial.println(
+          "[ISR_ALERT] Current Overload (>4.5A)! Emergency Cutoff Active.");
     }
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -231,13 +244,12 @@ void TaskMqttStreaming(void *pvParameters) {
     }
 
     // 7. Output WebSerial Telemetry Frame for Frontend Dashboard
-    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 VIB=1.22 AIR_TEMP=25.0 RELAY=1
-    Serial.printf("[HW_TELEM] RPM=%.1f CURR=%.2f TEMP=%.1f VIB=%.2f AIR_TEMP=%.1f RELAY=%d\n",
-                  rpm,
-                  filteredCurrent,
-                  statorC > -50 ? statorC : 25.0f,
-                  filteredVibrationRms,
-                  isnan(ambientC) ? 25.0f : ambientC,
+    // Format: [HW_TELEM] RPM=1680.0 CURR=1.85 TEMP=34.2 VIB=1.22 AIR_TEMP=25.0
+    // RELAY=1
+    Serial.printf("[HW_TELEM] RPM=%.1f CURR=%.2f TEMP=%.1f VIB=%.2f "
+                  "AIR_TEMP=%.1f RELAY=%d\n",
+                  rpm, filteredCurrent, statorC > -50 ? statorC : 25.0f,
+                  filteredVibrationRms, isnan(ambientC) ? 25.0f : ambientC,
                   relayTripped ? 0 : 1);
 
     // 8. Publish JSON Payload to MQTT Broker (if online)
@@ -305,8 +317,10 @@ void setup() {
   mqttClient.setCallback(onMqttCommand);
 
   // FreeRTOS Task Creation
-  xTaskCreatePinnedToCore(TaskSensorAcquisition, "SensorTask", 4096, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskMqttStreaming, "MqttTask", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(TaskSensorAcquisition, "SensorTask", 4096, NULL, 2,
+                          NULL, 0);
+  xTaskCreatePinnedToCore(TaskMqttStreaming, "MqttTask", 4096, NULL, 1, NULL,
+                          1);
 
   Serial.println("[INIT] Dual-Core FreeRTOS Tasks Started.");
 }

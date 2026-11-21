@@ -3,7 +3,11 @@
         {
             "name": "ESP32-Arduino",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/.vscode/arduino_stubs"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/.vscode/arduino_stubs/Arduino.h"
             ],
             "defines": [
                 "ESP32",

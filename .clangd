@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - "-I.vscode/arduino_stubs"
+    - "-include"
+    - ".vscode/arduino_stubs/Arduino.h"
+    - "-Wno-everything"
+Diagnostics:
+  Suppress: ["*"]

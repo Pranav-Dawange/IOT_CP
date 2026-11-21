@@ -76,7 +76,10 @@ mosquitto/log/*.log
 
 # --- IDEs, Editors & Operating System ---
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/c_cpp_properties.json
+!.vscode/arduino_stubs/
 *.swp
 *.swo
 *~
