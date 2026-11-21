@@ -642,15 +642,25 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
       )}
 
       {/* ─── TAB 2: ESP32 FIRMWARE FLASHER ─── */}
+      {/* ─── TAB 2: FIRMWARE FLASHER & PARTITION MAP STUDIO ─── */}
       {activeTab === 'flasher' && (
         <div className="space-y-4">
           <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="font-bold text-white text-xs">Firmware Image Selection:</span>
+                <span className="font-bold text-white text-xs">Firmware Image Selection &amp; Bootloader Emulation:</span>
                 <span className="text-[11px] text-slate-400 ml-2">ESP32 Dual-Core FreeRTOS v5.0</span>
               </div>
-              <span className="text-[10px] text-cyan-400 font-bold">Chip Target: ESP32-WROOM-32 (4MB Flash)</span>
+              <span className="text-[10px] text-cyan-400 font-bold">Target: ESP32-WROOM-32 (4MB QSPI)</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-blue-950/30 border border-blue-800/50 text-[11px] text-blue-200">
+              <strong className="text-white">Physical Hardware Flashing: </strong>
+              To flash physical silicon directly from your terminal, execute:
+              <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 ml-1">
+                esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x10000 firmware.bin
+              </code>.
+              The panel below provides interactive Hardware-in-the-Loop (HIL) ROM bootloader protocol verification, SLIP handshake trace, and partition table inspection.
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -760,7 +770,7 @@ export const WebSerialFlasher: React.FC<WebSerialFlasherProps> = ({
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-900/30 disabled:opacity-50 transition-all hover:scale-102"
               >
                 <Zap className="w-4 h-4" />
-                <span>Flash Firmware to ESP32</span>
+                <span>Execute ROM Flash Protocol Emulation</span>
               </button>
             </div>
           </div>
