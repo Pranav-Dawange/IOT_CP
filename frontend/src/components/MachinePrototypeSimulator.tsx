@@ -351,6 +351,7 @@ const TEST_POINTS: TestPoint[] = [
   { id: 'TP6', label: 'TP6: MPU6050_SDA', name: 'MPU6050 I2C SDA Line', x: 220, y: 320, voltage: (_t, p) => p ? 3.29 : 0.0, unit: 'V DC', domain: 'LOGIC 3.3V' },
   { id: 'TP7', label: 'TP7: RELAY_IN', name: 'Relay Control Input (GPIO 26)', x: 375, y: 310, voltage: (_t, p, tripped) => p ? (tripped ? 0.05 : 3.28) : 0.0, unit: 'V DC', domain: 'LOGIC 3.3V' },
   { id: 'TP8', label: 'TP8: MOTOR_24V', name: 'RS-775 Motor Terminal V+', x: 580, y: 75, voltage: (_t, p, tripped) => (p && !tripped) ? 24.08 : 0.0, unit: 'V DC', domain: 'MOTOR 24V' },
+  { id: 'TP9', label: 'TP9: DHT22_DAT', name: 'DHT22 Ambient Air Bus (GPIO 19)', x: 360, y: 180, voltage: (_t, p) => p ? 3.28 : 0.0, unit: 'V DC', domain: 'LOGIC 3.3V' },
 ];
 
 // ─── PRESENTATION SLIDES ────────────────────────────────────────────────────
@@ -412,12 +413,14 @@ const ESP32_FIRMWARE_CODE = `/**
 #include <Adafruit_SSD1306.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <DHT.h>
 #include <ArduinoJson.h>
 
 // --- PIN DEFINITIONS ---
 #define PIN_ACS712_ADC     34   // ADC1_CH6 (12-bit, Hall Current)
 #define PIN_LM393_INT      18   // Hardware Interrupt (Spindle Speed)
 #define PIN_DS18B20_DQ      4   // Dallas 1-Wire Stator Temperature
+#define PIN_DHT22_DATA     19   // Single-Bus Digital (Ambient Air Temp)
 #define PIN_RELAY_CUTOFF   26   // Active-LOW Songle Relay Actuator
 #define PIN_I2C_SDA        21   // OLED & MPU-6050 Data
 #define PIN_I2C_SCL        22   // OLED & MPU-6050 Clock
@@ -426,6 +429,7 @@ const ESP32_FIRMWARE_CODE = `/**
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 OneWire oneWire(PIN_DS18B20_DQ);
 DallasTemperature tempSensor(&oneWire);
+DHT dht(PIN_DHT22_DATA, DHT22);
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
@@ -436,6 +440,7 @@ float filteredCurrent = 0.0;
 float filteredVibration = 1.20;
 const float EMA_ALPHA = 0.30;
 bool relayTripped = false;
+float accumulatedWearMin = 0.0;
 
 // --- HARDWARE INTERRUPT (ATOMIC INCREMENT IN IRAM) ---
 void IRAM_ATTR onSpindlePulse() {
@@ -474,13 +479,20 @@ void TaskSensorAcquisition(void *pvParameters) {
 
 // Downlink MQTT Command Callback (Closes the Cyber-Physical Loop)
 void onMqttCommand(char* topic, byte* payload, unsigned int length) {
-  StaticJsonDocument<128> cmdDoc;
+  StaticJsonDocument<256> cmdDoc;
   deserializeJson(cmdDoc, payload, length);
   const char* cmd = cmdDoc["command"] | "";
-  if (strcmp(cmd, "TRIP_RELAY") == 0) {
+  if (strcmp(cmd, "TRIP_RELAY") == 0 || strcmp(cmd, "EMERGENCY_STOP") == 0) {
     digitalWrite(PIN_RELAY_CUTOFF, LOW);
     relayTripped = true;
-    Serial.println("[DOWNLINK] GRU Risk Breaker Trip command received!");
+    Serial.println("[DOWNLINK] Automated Cutoff: Relay TRIPPED!");
+  } else if (strcmp(cmd, "RESUME") == 0) {
+    digitalWrite(PIN_RELAY_CUTOFF, HIGH);
+    relayTripped = false;
+    Serial.println("[DOWNLINK] Motor Relatch: Relay ARMED!");
+  } else if (strcmp(cmd, "RESET_BUFFER") == 0) {
+    accumulatedWearMin = 0.0;
+    Serial.println("[DOWNLINK] Edge Telemetry Buffer & Wear Reset!");
   }
 }
 
@@ -493,7 +505,7 @@ void TaskMqttStreaming(void *pvParameters) {
   for (;;) {
     if (!mqttClient.connected()) {
       reconnectMqtt();
-      mqttClient.subscribe("factory/lineA/asset_01/cmd", 1);
+      mqttClient.subscribe("factory/line_A/asset_01/cmd", 1);
     }
     mqttClient.loop();
 
@@ -504,28 +516,39 @@ void TaskMqttStreaming(void *pvParameters) {
     portEXIT_CRITICAL(&isrMux);
 
     float rpm = (count / 8.0) * 60.0;
-    float spindleTorque = filteredCurrent * 18.5; // kt_spindle = η·N·kt_motor
+    // Electromechanical torque scaling subtracting no-load current I_0 = 0.35A
+    float netCurrent = max(0.0f, filteredCurrent - 0.35f);
+    float spindleTorque = netCurrent * 18.5f; // kt_spindle = η·N·kt_motor
 
     // 2. Non-blocking Stator Temperature Read
     float statorC = tempSensor.getTempCByIndex(0);
     tempSensor.requestTemperatures(); // Kick off next conversion asynchronously (no 750ms stall)
 
-    // 3. Serialize Full Contract Payload (Compliant with Edge Validator)
+    // 3. Sample DHT22 Ambient Air Temperature
+    float ambientC = dht.readTemperature();
+    float ambientK = isnan(ambientC) ? 298.15f : (ambientC + 273.15f);
+
+    // 4. Track Cumulative Spindle Tool Wear Time (Minutes)
+    if (rpm > 100.0f) {
+      accumulatedWearMin += (1.0f / 60.0f);
+    }
+
+    // 5. Serialize Full Contract Payload (Compliant with Edge Validator)
     StaticJsonDocument<384> doc;
     doc["asset_id"] = "asset_01";
     doc["sequence_number"] = sequenceNumber++;
     doc["timestamp"] = "2026-11-21T12:00:00Z";
-    doc["air_temperature"] = 298.15; // DHT22 25.0°C baseline
+    doc["air_temperature"] = ambientK;
     doc["process_temperature"] = statorC > -50 ? statorC + 273.15 : 308.5;
     doc["rotational_speed"] = rpm;
     doc["torque"] = spindleTorque;
-    doc["tool_wear"] = 0.0;
+    doc["tool_wear"] = accumulatedWearMin;
     doc["current_a"] = filteredCurrent;
     doc["relay_state"] = relayTripped ? "OPEN" : "CLOSED";
 
     char buffer[384];
     serializeJson(doc, buffer);
-    mqttClient.publish("factory/lineA/asset_01/telemetry", buffer);
+    mqttClient.publish("factory/line_A/asset_01/telemetry", buffer);
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // 1.0 Hz Publishing
   }
@@ -547,6 +570,9 @@ void setup() {
   tempSensor.begin();
   tempSensor.setWaitForConversion(false);
   tempSensor.requestTemperatures();
+
+  // Initialize DHT22 Ambient Air Transducer
+  dht.begin();
 
   mqttClient.setCallback(onMqttCommand);
 
@@ -615,6 +641,7 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
     rpm: number;
     currentA: number;
     tempC: number;
+    airTempC?: number;
     vibrationG: number;
     relayState: boolean;
   } | null>(null);
@@ -698,8 +725,8 @@ export const MachinePrototypeSimulator: React.FC<MachineSimulatorProps> = ({ ass
         torque,
         tempC,
         tempK: parseFloat((tempC + 273.15).toFixed(1)),
-        airTempC: 23.5,
-        airTempK: 296.65,
+        airTempC: hardwareTelemData.airTempC || 24.8,
+        airTempK: parseFloat(((hardwareTelemData.airTempC || 24.8) + 273.15).toFixed(2)),
         toolWear: 30,
         currentA,
         voltage: relayState ? 24.0 : 0.0,

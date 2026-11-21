@@ -54,8 +54,8 @@ To strictly adhere to the AI4I 2020 predictive maintenance contract without data
 
 | AI4I Covariate | Unit | Physical Prototype Sensor | Interface / Protocol | Operating Principle & Physical Conversion |
 | :--- | :--- | :--- | :--- | :--- |
-| **Air Temperature** ($T_{\text{air}}$) | Kelvin ($\text{K}$) | **DHT22 (AM2302)** | Single-Wire GPIO 4 | Capacitive polymer humidity & NTC thermistor measuring ambient shop floor temperature. Converted as $T_{\text{air}} = T_{\text{celsius}} + 273.15$. |
-| **Process Temperature** ($T_{\text{proc}}$) | Kelvin ($\text{K}$) | **DS18B20** | Dallas 1-Wire GPIO 5 | Direct stator thermal coupling with non-blocking 12-bit ADC conversion. Converted as $T_{\text{proc}} = T_{\text{celsius}} + 273.15$. |
+| **Air Temperature** ($T_{\text{air}}$) | Kelvin ($\text{K}$) | **DHT22 (AM2302)** | Single-Wire GPIO 19 | Capacitive polymer humidity & NTC thermistor measuring ambient shop floor temperature. Converted as $T_{\text{air}} = T_{\text{celsius}} + 273.15$. |
+| **Process Temperature** ($T_{\text{proc}}$) | Kelvin ($\text{K}$) | **DS18B20** | Dallas 1-Wire GPIO 4 | Direct stator thermal coupling with non-blocking 12-bit ADC conversion. Converted as $T_{\text{proc}} = T_{\text{celsius}} + 273.15$. |
 | **Rotational Speed** ($\omega$) | $\text{rpm}$ | **LM393 Optical Tachometer** | Hardware Interrupt GPIO 18 | Infrared beam interrupted by an 8-slot optical encoder disc on the spindle shaft. $\text{RPM} = \frac{\Delta\text{pulses}}{8} \times \frac{60}{\Delta t}$. |
 | **Torque** ($\tau$) | $\text{N}\cdot\text{m}$ | **ACS712-05B Hall Effect** | Analog ADC1 (GPIO 34) | Measures armature current ($I_{\text{arm}}$). Transformed via the electromechanical motor constant $k_t = 0.082\,\text{N}\cdot\text{m/A}$: $\tau = k_t \cdot (I_{\text{arm}} - I_0)$. |
 | **Tool Wear** ($t_{\text{wear}}$) | Minutes ($\text{min}$) | **MPU-6050 6-DOF IMU** | $I^2C$ Bus (GPIO 21/22) | High-frequency vibration velocity RMS ($v_{\text{rms}}$) sampled at 200 Hz across spindle bearing blocks, serving as a mechanical wear accumulation proxy. |
@@ -214,7 +214,7 @@ The frontend is organized into 6 dedicated studios with browser hash routing:
   - LM393 optical tachometer straddling shaft encoder disc
   - ACS712 current transducer inline with DC power
   - MPU-6050 vibration IMU mounted on bearing housing
-- **Fluke 87V Digital Multimeter (DMM)**: Probe 8 physical electrical test points with live voltage, frequency, and signal verification.
+- **Fluke 87V Digital Multimeter (DMM)**: Probe 9 physical electrical test points with live voltage, frequency, and signal verification.
 - **Pinout Matrix & FreeRTOS Firmware**: View the complete hardware schematic, pin assignments, logic levels, and dual-core FreeRTOS C++ firmware.
 
 ### 3. Interactive Breadboard CAD & Electrical Rule Check (`#wiring`)
@@ -228,7 +228,7 @@ The frontend is organized into 6 dedicated studios with browser hash routing:
   6. `erc_tachometer_net`: LM393 D0 pulse output to interrupt GPIO 18
   7. `erc_acs712_current`: ACS712 OUT analog feed to ADC1 GPIO 34
   8. `erc_relay_control`: Songle safety cut-off relay control line on GPIO 25
-  9. `erc_dht22_ambient`: DHT22 Data pin 10kΩ pull-up resistor and GPIO 4 interconnect
+  9. `erc_dht22_ambient`: DHT22 Data pin 10kΩ pull-up resistor and GPIO 19 interconnect
 - **Diagnostic Verification Modal**: Generates an engineering verification certificate with pass/warn/fail status and remediation advice.
 
 ### 4. Vibration Spectrum Analyzer (`#vibration`)
