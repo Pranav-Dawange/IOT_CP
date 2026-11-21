@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan context manager: handles startup and graceful shutdown.
     """
-    current_settings = get_settings()
+    current_settings = getattr(app.state, "settings", None) or get_settings()
 
     # 1. Initialize Database connection & verify tables
     if current_settings.database_url.startswith("sqlite"):

@@ -314,9 +314,10 @@ class MQTTConsumerService:
         if self._paho_client and self._is_started:
             try:
                 self._paho_client.disconnect()
-                self._paho_client.loop_stop()
+                loop = asyncio.get_running_loop()
+                await asyncio.wait_for(loop.run_in_executor(None, self._paho_client.loop_stop), timeout=1.0)
             except Exception as e:
-                logger.debug(f"Error during MQTT client disconnect: {e}")
+                logger.debug(f"Error during MQTT client disconnect/loop_stop: {e}")
             finally:
                 self._is_started = False
                 self._connected_event.clear()

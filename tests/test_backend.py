@@ -93,11 +93,14 @@ def test_client(test_db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
+    app.state.settings = TEST_SETTINGS
 
     with TestClient(app, raise_server_exceptions=True) as client:
         yield client
 
     app.dependency_overrides.clear()
+    if hasattr(app.state, "settings"):
+        delattr(app.state, "settings")
 
 
 def sample_processed_telemetry(asset_id="asset_01", seq=1, air_temp=300.5, torque=42.3, has_gap=False):
