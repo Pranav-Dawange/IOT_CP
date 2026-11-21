@@ -88,7 +88,7 @@ const SCENARIOS: ScenarioPreset[] = [
     color: 'border-purple-600/50 bg-purple-950/20 hover:border-purple-500',
     icon: <Wrench className="w-4 h-4 text-purple-400" />,
     faults: [
-      { type: 'TOOL_WEAR_SURGE', label: 'Tool Wear Surge', lines: ['lineA'] },
+      { type: 'TOOL_WEAR_SURGE', label: 'Tool Wear Surge', lines: ['line_A'] },
     ],
   },
   {
@@ -99,7 +99,7 @@ const SCENARIOS: ScenarioPreset[] = [
     color: 'border-rose-600/50 bg-rose-950/20 hover:border-rose-500',
     icon: <Flame className="w-4 h-4 text-rose-400" />,
     faults: [
-      { type: 'THERMAL_OVERHEAT', label: 'Thermal Overheat', lines: ['lineB', 'lineC'] },
+      { type: 'THERMAL_OVERHEAT', label: 'Thermal Overheat', lines: ['line_B', 'line_C'] },
     ],
   },
   {
@@ -110,7 +110,7 @@ const SCENARIOS: ScenarioPreset[] = [
     color: 'border-amber-600/50 bg-amber-950/20 hover:border-amber-500',
     icon: <AlertOctagon className="w-4 h-4 text-amber-400" />,
     faults: [
-      { type: 'TORQUE_SPIKE', label: 'Torque Spike', lines: ['lineA', 'lineB', 'lineC', 'lineD'] },
+      { type: 'TORQUE_SPIKE', label: 'Torque Spike', lines: ['line_A', 'line_B', 'line_C', 'line_D'] },
     ],
   },
   {
@@ -121,7 +121,7 @@ const SCENARIOS: ScenarioPreset[] = [
     color: 'border-cyan-600/50 bg-cyan-950/20 hover:border-cyan-500',
     icon: <WifiOff className="w-4 h-4 text-cyan-400" />,
     faults: [
-      { type: 'NETWORK_DROPOUT', label: 'Radio Dropout', lines: ['lineD'] },
+      { type: 'NETWORK_DROPOUT', label: 'Radio Dropout', lines: ['line_D'] },
     ],
   },
   {
@@ -132,7 +132,7 @@ const SCENARIOS: ScenarioPreset[] = [
     color: 'border-orange-600/50 bg-orange-950/20 hover:border-orange-500',
     icon: <Zap className="w-4 h-4 text-orange-400" />,
     faults: [
-      { type: 'SPINDLE_STALL', label: 'Spindle Stall Overload', lines: ['lineB'] },
+      { type: 'SPINDLE_STALL', label: 'Spindle Stall Overload', lines: ['line_B'] },
     ],
   },
 ];
@@ -140,6 +140,10 @@ const SCENARIOS: ScenarioPreset[] = [
 // ─── Line Badge ───────────────────────────────────────────────────────────────
 
 const LINE_COLORS: Record<string, string> = {
+  line_A: 'bg-blue-950 text-blue-300 border-blue-800/60',
+  line_B: 'bg-violet-950 text-violet-300 border-violet-800/60',
+  line_C: 'bg-amber-950 text-amber-300 border-amber-800/60',
+  line_D: 'bg-teal-950 text-teal-300 border-teal-800/60',
   lineA: 'bg-blue-950 text-blue-300 border-blue-800/60',
   lineB: 'bg-violet-950 text-violet-300 border-violet-800/60',
   lineC: 'bg-amber-950 text-amber-300 border-amber-800/60',
@@ -202,7 +206,7 @@ const DeviceCard: React.FC<{
           </span>
         </div>
         <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${LINE_COLORS[device.line] || 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-          {device.line.replace('line', 'Line ')}
+          {device.line.replace(/^line_?/i, 'Line ')}
         </span>
       </div>
 
@@ -638,7 +642,7 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
 
           {/* Line filter */}
           <div className="flex items-center gap-1.5">
-            {['all', 'lineA', 'lineB', 'lineC', 'lineD'].map((line) => (
+            {['all', 'line_A', 'line_B', 'line_C', 'line_D'].map((line) => (
               <button
                 key={line}
                 onClick={() => setSelectedLine(line)}
@@ -648,7 +652,7 @@ export const SimulationDashboard: React.FC<SimulationDashboardProps> = ({
                     : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {line === 'all' ? 'All Lines' : line.replace('line', 'Line ')}
+                {line === 'all' ? 'All Lines' : line.replace(/^line_?/i, 'Line ')}
               </button>
             ))}
           </div>

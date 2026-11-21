@@ -227,7 +227,8 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
     const mpu3v3 = isConn('rail_3v3', 'mpu_vcc') || isConn('esp32_3v3', 'mpu_vcc');
     const lm3v3 = isConn('rail_3v3', 'lm_vcc') || isConn('esp32_3v3', 'lm_vcc');
     const ds3v3 = isConn('rail_3v3', 'ds_vcc') || isConn('esp32_3v3', 'ds_vcc');
-    const allPowerOk = esp5v && acs5v && relay5v && mpu3v3 && lm3v3 && ds3v3;
+    const dht3v3 = isConn('rail_3v3', 'dht_vcc') || isConn('esp32_3v3', 'dht_vcc');
+    const allPowerOk = esp5v && acs5v && relay5v && mpu3v3 && lm3v3 && ds3v3 && dht3v3;
 
     rules.push({
       id: 'erc_pwr_rails',
@@ -236,7 +237,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
       status: allPowerOk ? 'PASS' : !esp5v ? 'FAIL' : 'WARN',
       measuredValue: allPowerOk ? '+5.02V / +3.31V Regulated' : !esp5v ? '0.00V VIN (Unpowered MCU)' : 'Partial Rail Feed',
       details: allPowerOk
-        ? 'ESP32 VIN receives 5V; ACS712 and Songle Relay coil receive 5V; MPU-6050, LM393, and DS18B20 receive regulated 3.3V.'
+        ? 'ESP32 VIN receives 5V; ACS712 and Songle Relay coil receive 5V; MPU-6050, LM393, DS18B20, and DHT22 receive regulated 3.3V.'
         : !esp5v
         ? 'ESP32 VIN is disconnected from MB102 5V rail. Onboard AMS1117-3.3 regulator has no input voltage and MCU cannot boot.'
         : 'One or more peripheral transducers lack an active VCC power connection from the breadboard rails.',
@@ -250,8 +251,9 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
     const mpuGnd = isConn('rail_gnd_bot', 'mpu_gnd') || isConn('rail_gnd', 'mpu_gnd');
     const lmGnd = isConn('rail_gnd_bot', 'lm_gnd') || isConn('rail_gnd', 'lm_gnd');
     const dsGnd = isConn('rail_gnd_bot', 'ds_gnd') || isConn('rail_gnd', 'ds_gnd');
+    const dhtGnd = isConn('rail_gnd_bot', 'dht_gnd') || isConn('rail_gnd', 'dht_gnd');
     const relayGnd = isConn('rail_gnd', 'relay_gnd') || isConn('rail_gnd_bot', 'relay_gnd');
-    const allGndOk = espGnd && acsGnd && mpuGnd && lmGnd && dsGnd && relayGnd;
+    const allGndOk = espGnd && acsGnd && mpuGnd && lmGnd && dsGnd && dhtGnd && relayGnd;
 
     rules.push({
       id: 'erc_gnd_net',
@@ -260,7 +262,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
       status: allGndOk ? 'PASS' : 'WARN',
       measuredValue: allGndOk ? '0.00V Reference (Z < 0.05Ω)' : 'Floating Ground Potential',
       details: allGndOk
-        ? 'All 6 modules and the ESP32 tie to the shared MB102 ground rails, guaranteeing a zero-volt potential reference.'
+        ? 'All 7 modules and the ESP32 tie to the shared MB102 ground rails, guaranteeing a zero-volt potential reference.'
         : 'One or more module ground connections are missing. Floating ground references cause ground bounce and false ADC readings.',
       vivaNote: 'Star grounding prevents return currents of high-current actuators (motor/relay) from inducing parasitic voltage drops across sensitive analog sensor ground traces.',
       affectedPins: !espGnd ? ['esp32_gnd1', 'rail_gnd'] : [],

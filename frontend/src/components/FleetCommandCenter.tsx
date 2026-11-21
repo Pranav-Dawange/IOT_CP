@@ -61,7 +61,7 @@ interface FleetCommandCenterProps {
 // ── Shared Helpers ──────────────────────────────────────────────────────────
 export const getLineShort = (line: string): string => {
   if (!line) return '';
-  return line.replace(/^line/i, 'Line ').trim();
+  return line.replace(/^line_?/i, 'Line ').trim();
 };
 
 export const getMachineName = (assetId: string): string => {
