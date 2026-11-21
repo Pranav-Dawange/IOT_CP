@@ -15,7 +15,7 @@ import asyncio
 from datetime import datetime, timezone
 import json
 import logging
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from fastapi import WebSocket
 

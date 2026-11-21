@@ -41,7 +41,8 @@ export const App: React.FC = () => {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState<boolean>(false);
   const [isWhatIfOpen, setIsWhatIfOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<PageRoute>(() => {
-    const hash = window.location.hash.replace('#', '') as PageRoute;
+    const rawHash = window.location.hash.replace('#', '');
+    const hash = rawHash === 'orchestration' ? 'flow' : (rawHash as PageRoute);
     return ['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash) ? hash : 'fleet';
   });
   const [personaMode, setPersonaMode] = useState<'operator' | 'engineer'>('operator');
@@ -65,15 +66,15 @@ export const App: React.FC = () => {
     window.location.hash = page;
   };
 
-  // ── Keyboard shortcuts: 1–5 = pages, Esc = close modals ──────────────────
+  // ── Keyboard shortcuts: 1–6 = pages, Esc = close modals ──────────────────
   useEffect(() => {
-    const pages: PageRoute[] = ['fleet', 'twin', 'wiring', 'vibration', 'simulator'];
+    const pages: PageRoute[] = ['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'];
     const handleKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Escape') {
         setIsDisclaimerOpen(false);
         setIsWhatIfOpen(false);
-      } else if (e.key >= '1' && e.key <= '5') {
+      } else if (e.key >= '1' && e.key <= '6') {
         const idx = parseInt(e.key, 10) - 1;
         if (pages[idx]) handleSelectPage(pages[idx]);
       }
@@ -85,8 +86,9 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '') as PageRoute;
-      if (['fleet', 'twin', 'wiring', 'vibration', 'simulator'].includes(hash)) {
+      const rawHash = window.location.hash.replace('#', '');
+      const hash = rawHash === 'orchestration' ? 'flow' : (rawHash as PageRoute);
+      if (['fleet', 'twin', 'wiring', 'vibration', 'simulator', 'flow'].includes(hash)) {
         setCurrentPage(hash);
       }
     };
@@ -316,7 +318,7 @@ export const App: React.FC = () => {
     const unsubWorkOrder = liveWs.on<WorkOrder>('work_order', (event: LiveEvent<WorkOrder>) => {
       const wo = event.data;
       if (wo) {
-        showToast(`📋 Work Order ${wo.work_order_id} dispatched for ${wo.asset_id.replace(/asset_?/i, 'Machine ')}!`, 'info');
+        showToast(`Work Order ${wo.work_order_id} dispatched for ${wo.asset_id.replace(/asset_?/i, 'Machine ')}`, 'info');
       }
     });
 
@@ -324,7 +326,7 @@ export const App: React.FC = () => {
     const unsubOperatorAction = liveWs.on<any>('operator_action', (event: LiveEvent<any>) => {
       const act = event.data;
       if (act) {
-        showToast(`⚙️ ${act.message || act.action}`, 'success');
+        showToast(`${act.message || act.action}`, 'success');
         if (act.action === 'TOOL_REPLACED') {
           setAssets((prev) =>
             prev.map((a) =>
@@ -540,10 +542,24 @@ export const App: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <VibrationSpectrumAnalyzer
-                rpm={selectedAsset?.latest_telemetry?.rotational_speed ?? 1750}
-                vibrationG={selectedAsset?.latest_telemetry ? ((selectedAsset.latest_telemetry.torque ?? 30) / 40) : 0.8}
-              />
+              {(() => {
+                const telem = selectedAsset?.latest_telemetry;
+                const rpm = telem?.rotational_speed ?? 1750;
+                const wear = telem?.tool_wear ?? 20;
+                const torque = telem?.torque ?? 38;
+                // Physically modeled ISO 10816 mechanical vibration from rotational unbalance, load, and cutter wear
+                const unbalanceFactor = Math.pow(rpm / 1500, 2) * 0.55;
+                const wearChatter = Math.min(2.5, Math.pow(wear / 120, 1.5) * 0.45);
+                const loadStress = (torque / 40.0) * 0.25;
+                const calculatedVibG = parseFloat((unbalanceFactor + wearChatter + loadStress).toFixed(2));
+
+                return (
+                  <VibrationSpectrumAnalyzer
+                    rpm={rpm}
+                    vibrationG={calculatedVibG}
+                  />
+                );
+              })()}
             </div>
           </ErrorBoundary>
         )}

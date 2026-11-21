@@ -61,7 +61,7 @@ interface FleetCommandCenterProps {
 // ── Shared Helpers ──────────────────────────────────────────────────────────
 export const getLineShort = (line: string): string => {
   if (!line) return '';
-  return line.replace(/^line/i, 'Line ').trim();
+  return line.replace(/^line_?/i, 'Line ').trim();
 };
 
 export const getMachineName = (assetId: string): string => {
@@ -70,11 +70,7 @@ export const getMachineName = (assetId: string): string => {
 };
 
 export const getMachineIcon = (type: string) => {
-  const t = (type || '').toLowerCase();
-  if (t.includes('pump')) return '💧';
-  if (t.includes('compressor')) return '🌀';
-  if (t.includes('spindle')) return '⚡';
-  return '⚙️';
+  return '';
 };
 
 export const FleetCommandCenter: React.FC<FleetCommandCenterProps> = ({
@@ -421,7 +417,7 @@ export const FleetCommandCenter: React.FC<FleetCommandCenterProps> = ({
                         ? 'bg-amber-500/15 text-amber-300'
                         : 'bg-emerald-500/15 text-emerald-300'
                     }`}>
-                      {isHigh ? '🔴 High Risk' : prob >= 0.35 ? '🟡 Moderate' : '🟢 Normal'}
+                      {isHigh ? 'High Risk' : prob >= 0.35 ? 'Moderate' : 'Normal'}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
                       {asset.latest_telemetry?.tool_wear ?? 0} min wear
@@ -787,7 +783,7 @@ export const FleetCommandCenter: React.FC<FleetCommandCenterProps> = ({
                     <span className={`font-semibold text-sm ${
                       isHighRisk ? 'text-rose-400' : latestProb >= 0.35 ? 'text-amber-300' : 'text-emerald-400'
                     }`}>
-                      {isHighRisk ? '🔴 High Risk' : latestProb >= 0.35 ? '🟡 Moderate' : '🟢 Normal'}
+                      {isHighRisk ? 'High Risk' : latestProb >= 0.35 ? 'Moderate' : 'Normal'}
                     </span>
                   </div>
                   {/* Progress Bar */}
@@ -817,8 +813,8 @@ export const FleetCommandCenter: React.FC<FleetCommandCenterProps> = ({
 
                   <p className="text-[11px] text-slate-400">
                     {isHighRisk
-                      ? '⚠️ High probability of mechanical failure. Immediate inspection advised.'
-                      : '✅ Operating within nominal safety margins (Threshold τ = 0.55).'}
+                      ? 'Elevated failure probability. Inspection recommended.'
+                      : 'Operating within nominal safety margins (Threshold = 0.55).'}
                   </p>
                 </div>
 

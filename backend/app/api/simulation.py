@@ -103,10 +103,11 @@ def get_simulation_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
             "source_rows_total": cfg.total_source_rows,
             "last_seen": db_asset.last_seen_timestamp.isoformat() if db_asset and db_asset.last_seen_timestamp else None,
             "latest_sensor": {
-                "torque": latest_telem.torque if latest_telem else None,
-                "tool_wear": latest_telem.tool_wear if latest_telem else None,
+                "air_temperature": latest_telem.air_temperature if latest_telem else None,
                 "process_temperature": latest_telem.process_temperature if latest_telem else None,
                 "rotational_speed": latest_telem.rotational_speed if latest_telem else None,
+                "torque": latest_telem.torque if latest_telem else None,
+                "tool_wear": latest_telem.tool_wear if latest_telem else None,
                 "sequence_number": latest_telem.sequence_number if latest_telem else None,
             } if latest_telem else None,
             "latest_prediction": {

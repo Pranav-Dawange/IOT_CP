@@ -718,7 +718,7 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
                 Vibration FFT Spectrum Analyzer
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                Radix-2 FFT · MPU-6050
+                Kinematic Spectral Synthesizer · ISO 10816
               </span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
@@ -735,7 +735,7 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
             { id: 'spectrum', label: 'FFT Power', icon: <Waves className="w-3.5 h-3.5" /> },
             { id: 'time', label: 'Time Wave az(t)', icon: <Activity className="w-3.5 h-3.5" /> },
             { id: 'dual', label: 'Dual Domain', icon: <Layers className="w-3.5 h-3.5" /> },
-            { id: 'formulas', label: 'Kinematics & Viva', icon: <HelpCircle className="w-3.5 h-3.5" /> },
+            { id: 'formulas', label: 'Kinematic Formulations', icon: <HelpCircle className="w-3.5 h-3.5" /> },
           ].map(v => (
             <button
               key={v.id}
@@ -821,7 +821,7 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
             {statisticalMetrics.crestFactor.toFixed(2)}
           </div>
           <div className="text-[9px] text-slate-500 font-mono mt-0.5">
-            {statisticalMetrics.crestFactor > 4.0 ? '⚠ Impulsive Shocks' : 'Nominal Smooth'}
+            {statisticalMetrics.crestFactor > 4.0 ? 'Impulsive Shocks' : 'Nominal Smooth'}
           </div>
         </div>
 
@@ -942,7 +942,7 @@ export const VibrationSpectrumAnalyzer: React.FC<VibrationSpectrumAnalyzerProps>
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-cyan-400" />
               <span className="font-bold text-white text-sm">
-                Academic & Industrial Viva Defense: Bearing Kinematic Equations
+                Bearing Kinematic Formulations & Defect Frequencies
               </span>
             </div>
             <span className="text-[10px] text-slate-500 font-mono">

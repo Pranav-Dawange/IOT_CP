@@ -174,6 +174,16 @@ async def execute_asset_action(
 
     pred_service = getattr(request.app.state, "prediction_service", None)
     telem_service = getattr(request.app.state, "telemetry_service", None)
+    mqtt_consumer = getattr(request.app.state, "mqtt_consumer", None)
+
+    # Publish downlink actuation command to factory/{line}/{asset_id}/cmd
+    if mqtt_consumer:
+        mqtt_consumer.publish_command(
+            line=asset_cfg.line,
+            asset_id=asset_id,
+            command=action,
+            details={"fault_type": action_req.fault_type, "notes": action_req.notes},
+        )
 
     # 1. ACKNOWLEDGE ALERTS
     if action == "ACKNOWLEDGE_ALERTS":
