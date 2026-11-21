@@ -227,7 +227,7 @@ The frontend is organized into 6 dedicated studios with browser hash routing:
   5. `erc_onewire_pullup`: DS18B20 DQ 4.7kΩ pull-up resistor integrity
   6. `erc_tachometer_net`: LM393 D0 pulse output to interrupt GPIO 18
   7. `erc_acs712_current`: ACS712 OUT analog feed to ADC1 GPIO 34
-  8. `erc_relay_control`: Songle safety cut-off relay control line on GPIO 25
+  8. `erc_relay_control`: Songle safety cut-off relay control line on GPIO 26
   9. `erc_dht22_ambient`: DHT22 Data pin 10kΩ pull-up resistor and GPIO 19 interconnect
 - **Diagnostic Verification Modal**: Generates an engineering verification certificate with pass/warn/fail status and remediation advice.
 

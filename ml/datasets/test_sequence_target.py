@@ -236,7 +236,6 @@ def test_e_recalculated_split_statistics():
     assert np.isclose(stats_dict["test"]["pos_weight"], 6.8136, atol=1e-3)
 
     print("  -> PROVEN: All split recalculations verified successfully!")
-    return stats_dict
 
 
 if __name__ == "__main__":

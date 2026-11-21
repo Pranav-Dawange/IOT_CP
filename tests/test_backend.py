@@ -24,7 +24,7 @@ import json
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 
 from backend.app.config import Settings
 from backend.app.database.connection import get_db
