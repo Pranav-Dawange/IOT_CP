@@ -2,6 +2,10 @@
 Automated Integration Tests for Interactive Operations & What-If Simulation.
 """
 
+import os
+os.environ["ENABLE_MQTT_INGESTION"] = "false"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
@@ -9,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from backend.app.config import Settings, get_settings
+get_settings.cache_clear()
 import backend.app.database.connection as db_conn
 from backend.app.database.connection import get_db
 from backend.app.database.models import Base
