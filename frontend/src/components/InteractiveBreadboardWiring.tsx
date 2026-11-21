@@ -402,6 +402,21 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
       affectedPins: !acsNominal ? ['acs_out', 'esp32_gpio34'] : [],
     });
 
+    // Rule 9: DHT22 Ambient Air Sensor Net Integrity (GPIO 19)
+    const dhtNominal = isConn('dht_data', 'esp32_gpio19');
+    rules.push({
+      id: 'erc_dht22_ambient',
+      name: 'Ambient Air Temp & Humidity Net (DHT22 DATA)',
+      category: 'SIGNAL',
+      status: dhtNominal ? 'PASS' : 'WARN',
+      measuredValue: dhtNominal ? '3.3V Single-Bus (GPIO19)' : 'Disconnected',
+      details: dhtNominal
+        ? 'DHT22 / AM2302 digital single-bus signal line connected to ESP32 GPIO 19. Ready for ambient factory temperature monitoring.'
+        : 'DHT22 ambient temperature DATA line is not connected to ESP32 GPIO 19.',
+      vivaNote: 'Single-bus bidirectional protocol transmits 40-bit data packets containing relative humidity and ambient temperature measurements.',
+      affectedPins: !dhtNominal ? ['dht_data', 'esp32_gpio19'] : [],
+    });
+
     return rules;
   }, [wires, pinDict]);
 
@@ -442,8 +457,8 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
 
     return {
       status: 'NOMINAL',
-      title: '✓ All Electrical Rules Verified & Nominal (8/8 Checks Passed)',
-      description: 'Power rails (5V, 3.3V, 24V), I2C bus (0x68), ADC input (GPIO34), and 1-Wire (GPIO4 with 4.7kΩ) are correctly mapped without short circuits or overvoltage risks.',
+      title: '✓ All Electrical Rules Verified & Nominal (9/9 Checks Passed)',
+      description: 'Power rails (5V, 3.3V, 24V), I2C bus (0x68), ADC input (GPIO34), Dallas 1-Wire (GPIO4), and DHT22 Ambient Sensor (GPIO19) are correctly mapped without short circuits or overvoltage risks.',
       affectedPins: [],
       vivaNote: 'Galvanic isolation between the 24V motor circuit and the 3.3V digital logic is strictly maintained via the optocoupler barrier.',
       shortCircuit: false,
@@ -615,7 +630,7 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
             title="Inspect Electrical Rule Check Verification Report"
           >
             <FileCheck2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>ERC Report ({ercRules.filter(r => r.status === 'PASS').length}/8)</span>
+            <span>ERC Report ({ercRules.filter(r => r.status === 'PASS').length}/{ercRules.length})</span>
           </button>
 
           <button
@@ -1049,10 +1064,10 @@ export const InteractiveBreadboardWiring: React.FC<InteractiveBreadboardWiringPr
                 </div>
               </div>
 
-              {/* 8 Rule Cards */}
+              {/* Rule Cards */}
               <div className="space-y-2">
                 <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">
-                  Verified Electrical Nets (8 System Checks):
+                  Verified Electrical Nets ({ercRules.length} System Checks):
                 </div>
                 {ercRules.map((rule, idx) => (
                   <div

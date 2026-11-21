@@ -79,3 +79,5 @@ Thumbs.db
 vite.config.ts.timestamp*
 .tempmediaStorage/
 scratch/
+*.db
+data/*.db
