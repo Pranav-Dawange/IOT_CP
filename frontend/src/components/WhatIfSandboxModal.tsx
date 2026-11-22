@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -112,9 +112,37 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync with selected asset latest telemetry when modal opens
+  // Track initialization so live WebSocket updates to selectedAsset don't overwrite user-adjusted sliders
+  const hasInitializedRef = useRef<boolean>(false);
+  const lastAssetIdRef = useRef<string | null>(null);
+
+  // Sync with selected asset latest telemetry ONLY ONCE when modal opens or target asset changes
   useEffect(() => {
-    if (isOpen && selectedAsset?.latest_telemetry) {
+    if (isOpen) {
+      const assetChanged = selectedAsset?.asset_id !== lastAssetIdRef.current;
+      if ((!hasInitializedRef.current || assetChanged) && selectedAsset?.latest_telemetry) {
+        const telem = selectedAsset.latest_telemetry;
+        setParams({
+          air_temperature: telem.air_temperature,
+          process_temperature: telem.process_temperature,
+          rotational_speed: telem.rotational_speed,
+          torque: telem.torque,
+          tool_wear: telem.tool_wear,
+          asset_id: selectedAsset.asset_id,
+          simulation_mode: 'steady_state',
+        });
+        hasInitializedRef.current = true;
+        lastAssetIdRef.current = selectedAsset.asset_id;
+      }
+    } else {
+      hasInitializedRef.current = false;
+      lastAssetIdRef.current = null;
+    }
+  }, [isOpen, selectedAsset?.asset_id, selectedAsset?.latest_telemetry]);
+
+  // Explicit manual re-sync with live telemetry on user demand
+  const syncWithLiveTelemetry = () => {
+    if (selectedAsset?.latest_telemetry) {
       const telem = selectedAsset.latest_telemetry;
       setParams({
         air_temperature: telem.air_temperature,
@@ -126,7 +154,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
         simulation_mode: 'steady_state',
       });
     }
-  }, [isOpen, selectedAsset]);
+  };
 
   // Run simulation whenever params change
   useEffect(() => {
@@ -160,7 +188,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
       isSubscribed = false;
       clearTimeout(timeout);
     };
-  }, [params, isOpen, selectedAsset]);
+  }, [params, isOpen, selectedAsset?.asset_id]);
 
   if (!isOpen) return null;
 
@@ -180,10 +208,16 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
   const riskPercent = (riskProb * 100).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="glass-panel w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-white/10">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="glass-panel w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-white/10 my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-white/10 bg-white/[0.02] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
               <SlidersHorizontal className="w-5 h-5" />
@@ -211,7 +245,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-200">
+        <div className="p-4 sm:p-6 overflow-y-auto min-h-0 flex-1 space-y-5 text-slate-200 overscroll-contain">
           {/* Quick Scenario Presets */}
           <div>
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2 font-mono flex items-center gap-1.5">
@@ -238,13 +272,30 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: 5 Interactive Sliders (7 cols) */}
             <div className="lg:col-span-7 space-y-4 bg-slate-950/50 p-4 rounded-lg border border-slate-800">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-                <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wide">
-                  Raw Sensor Feature Inputs
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  Target Machine: <strong className="text-cyan-400">{selectedAsset ? selectedAsset.asset_id.replace(/asset_?/i, 'Machine ') : 'All Machines'}</strong>
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wide">
+                    Raw Sensor Feature Inputs
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 font-mono">
+                    Manual Tuning
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400">
+                    Target: <strong className="text-cyan-400">{selectedAsset ? selectedAsset.asset_id.replace(/asset_?/i, 'Machine ') : 'All Machines'}</strong>
+                  </span>
+                  {selectedAsset?.latest_telemetry && (
+                    <button
+                      onClick={syncWithLiveTelemetry}
+                      title="Reset sliders to current live machine readings"
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-mono flex items-center gap-1 transition-colors"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5 text-cyan-400" />
+                      Sync Live
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 1. Air Temperature Slider */}
@@ -545,16 +596,16 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-xs text-slate-400">
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-950/95 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-blue-400" />
-            <span>
-              Calls live backend endpoint <code>/predictions/simulate</code> with frozen model checkpoint.
+            <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <span className="text-[11px] sm:text-xs">
+              Calls live backend endpoint <code className="text-cyan-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 font-mono">/predictions/simulate</code> with frozen model checkpoint.
             </span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
+            className="px-5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg flex-shrink-0"
           >
             Done
           </button>
