@@ -24,6 +24,7 @@ interface WhatIfSandboxModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedAsset: Asset | null;
+  onNotification?: (msg: string, type?: 'success' | 'warning' | 'info') => void;
 }
 
 const PRESETS: {
@@ -98,6 +99,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
   isOpen,
   onClose,
   selectedAsset,
+  onNotification,
 }) => {
   const [params, setParams] = useState<WhatIfSimulationParams>({
     air_temperature: 300.0,
@@ -110,6 +112,7 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
 
   const [simulationResult, setSimulationResult] = useState<WhatIfSimulationResult | null>(null);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Track initialization so live WebSocket updates to selectedAsset don't overwrite user-adjusted sliders
@@ -153,6 +156,39 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
         asset_id: selectedAsset.asset_id,
         simulation_mode: 'steady_state',
       });
+    }
+  };
+
+  // Deploy / Inject the custom adjusted values directly into the live machine
+  const handleApplyToMachine = async () => {
+    if (!selectedAsset) return;
+    setIsDeploying(true);
+    setError(null);
+    try {
+      await apiClient.executeAssetAction(
+        selectedAsset.asset_id,
+        'INJECT_FAULT',
+        'Custom parameters applied from What-If Digital Twin Sandbox',
+        undefined,
+        {
+          air_temperature: params.air_temperature,
+          process_temperature: params.process_temperature,
+          rotational_speed: params.rotational_speed,
+          torque: params.torque,
+          tool_wear: params.tool_wear,
+        }
+      );
+      if (onNotification) {
+        onNotification(
+          `Applied custom parameters to ${selectedAsset.asset_id.replace(/asset_?/i, 'Machine ')}! Check the dashboard drawer.`,
+          'success'
+        );
+      }
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to apply values to machine');
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -596,19 +632,38 @@ export const WhatIfSandboxModal: React.FC<WhatIfSandboxModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-950/95 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-950/95 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
             <span className="text-[11px] sm:text-xs">
-              Calls live backend endpoint <code className="text-cyan-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 font-mono">/predictions/simulate</code> with frozen model checkpoint.
+              What-If Sandbox: evaluate hypothetically, or click <strong>Apply to Machine</strong> to inject these values live.
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="px-5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg flex-shrink-0"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors border border-slate-700"
+            >
+              Close
+            </button>
+            <button
+              onClick={handleApplyToMachine}
+              disabled={isDeploying || !selectedAsset}
+              className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold transition-all shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {isDeploying ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  Injecting...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5 text-amber-300" />
+                  Apply &amp; Inject to {selectedAsset ? selectedAsset.asset_id.replace(/asset_?/i, 'Machine ') : 'Machine'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

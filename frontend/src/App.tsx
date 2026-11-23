@@ -609,6 +609,7 @@ export const App: React.FC = () => {
         isOpen={isWhatIfOpen}
         onClose={() => setIsWhatIfOpen(false)}
         selectedAsset={selectedAsset}
+        onNotification={showToast}
       />
 
       {/* Toast Notification Stack */}

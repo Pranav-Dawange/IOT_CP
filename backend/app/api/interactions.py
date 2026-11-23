@@ -58,6 +58,10 @@ class AssetActionRequest(BaseModel):
         None,
         description="Type of fault: TORQUE_SPIKE, THERMAL_OVERHEAT, TOOL_WEAR_SURGE, SPINDLE_STALL, NETWORK_DROPOUT, SEQUENCE_GAP",
     )
+    custom_telemetry: Optional[Dict[str, float]] = Field(
+        None,
+        description="Custom sensor readings to inject: air_temperature, process_temperature, rotational_speed, torque, tool_wear",
+    )
 
 
 def validate_asset(asset_id: str):
@@ -338,6 +342,24 @@ async def execute_asset_action(
             anomaly_flags.append("SPINDLE_STALL_RISK")
         elif fault == "SEQUENCE_GAP":
             anomaly_flags.append("SEQUENCE_GAP_DETECTED")
+
+        # Custom telemetry injection from What-If Digital Twin Sandbox
+        if action_req.custom_telemetry:
+            base_air = float(action_req.custom_telemetry.get("air_temperature", base_air))
+            base_proc = float(action_req.custom_telemetry.get("process_temperature", base_proc))
+            base_speed = float(action_req.custom_telemetry.get("rotational_speed", base_speed))
+            base_torque = float(action_req.custom_telemetry.get("torque", base_torque))
+            base_wear = float(action_req.custom_telemetry.get("tool_wear", base_wear))
+            if base_torque >= 65.0 and "TORQUE_OUT_OF_BOUNDS" not in anomaly_flags:
+                anomaly_flags.append("TORQUE_OUT_OF_BOUNDS")
+            if base_proc >= 315.0 and "PROCESS_TEMP_OUT_OF_BOUNDS" not in anomaly_flags:
+                anomaly_flags.append("PROCESS_TEMP_OUT_OF_BOUNDS")
+            if base_wear >= 200.0 and "TOOL_WEAR_LIMIT_EXCEEDED" not in anomaly_flags:
+                anomaly_flags.append("TOOL_WEAR_LIMIT_EXCEEDED")
+            if (base_proc - base_air) < 8.6 and "HEAT_DISSIPATION_DEFICIT" not in anomaly_flags:
+                anomaly_flags.append("HEAT_DISSIPATION_DEFICIT")
+            if base_speed < 1250.0 and base_torque >= 60.0 and "SPINDLE_STALL_RISK" not in anomaly_flags:
+                anomaly_flags.append("SPINDLE_STALL_RISK")
 
         # Get latest sequence number if any
         latest_status = TelemetryRepository.get_asset_by_id(db, asset_id)

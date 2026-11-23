@@ -124,7 +124,8 @@ export const apiClient = {
     assetId: string,
     action: string,
     notes?: string,
-    faultType?: string
+    faultType?: string,
+    customTelemetry?: Record<string, number>
   ): Promise<any> {
     return fetchJson<any>(`/assets/${encodeURIComponent(assetId)}/action`, {
       method: 'POST',
@@ -132,6 +133,7 @@ export const apiClient = {
         action,
         notes,
         fault_type: faultType,
+        custom_telemetry: customTelemetry,
       }),
     });
   },
